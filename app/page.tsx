@@ -1,103 +1,164 @@
-import Image from "next/image";
-
+// app/page.tsx
 export default function Home() {
   return (
-    <div className="font-sans grid grid-rows-[20px_1fr_20px] items-center justify-items-center min-h-screen p-8 pb-20 gap-16 sm:p-20">
-      <main className="flex flex-col gap-[32px] row-start-2 items-center sm:items-start">
-        <Image
-          className="dark:invert"
-          src="/next.svg"
-          alt="Next.js logo"
-          width={180}
-          height={38}
-          priority
-        />
-        <ol className="font-mono list-inside list-decimal text-sm/6 text-center sm:text-left">
-          <li className="mb-2 tracking-[-.01em]">
-            Get started by editing{" "}
-            <code className="bg-black/[.05] dark:bg-white/[.06] font-mono font-semibold px-1 py-0.5 rounded">
-              app/page.tsx
-            </code>
-            .
-          </li>
-          <li className="tracking-[-.01em]">
-            Save and see your changes instantly.
-          </li>
-        </ol>
+    <main className="sm:p-6 space-y-6">
+      {/* Headline */}
+      <div className="flex flex-col">
+        <h1 className="text-2xl sm:text-3xl text-black font-semibold">Dashboard</h1>
+        <p className="text-sm text-gray-500">Ringkasan singkat untuk Garuda Mas — statistik dan aktivitas terbaru.</p>
+      </div>
 
-        <div className="flex gap-4 items-center flex-col sm:flex-row">
+      {/* ===== Mobile Quick Menu (ikon di atas teks) ===== */}
+      <section className="md:hidden -mt-2">
+        <div className="grid grid-cols-3 gap-3">
+          {/* Tambah Ticket */}
           <a
-            className="rounded-full border border-solid border-transparent transition-colors flex items-center justify-center bg-foreground text-background gap-2 hover:bg-[#383838] dark:hover:bg-[#ccc] font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 sm:w-auto"
-            href="https://vercel.com/new?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
+            href="/ticketing" /* arahkan ke halaman ticketing/add sesuai routemu */
+            className="flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-white p-3 shadow-md active:scale-[0.98] transition"
+            aria-label="Tambah Ticket"
           >
-            <Image
-              className="dark:invert"
-              src="/vercel.svg"
-              alt="Vercel logomark"
-              width={20}
-              height={20}
-            />
-            Deploy now
+            {/* Ikon tiket */}
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M3 8a2 2 0 0 1 2-2h6v3a2 2 0 1 0 0 4v3H5a2 2 0 0 1-2-2V8Z" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M21 8a2 2 0 0 0-2-2h-6v3a2 2 0 1 1 0 4v3h6a2 2 0 0 0 2-2V8Z" stroke="currentColor" strokeWidth="1.5" />
+            </svg>
+            <span className="text-xs font-medium text-gray-900">Tambah Ticket</span>
           </a>
-          <a
-            className="rounded-full border border-solid border-black/[.08] dark:border-white/[.145] transition-colors flex items-center justify-center hover:bg-[#f2f2f2] dark:hover:bg-[#1a1a1a] hover:border-transparent font-medium text-sm sm:text-base h-10 sm:h-12 px-4 sm:px-5 w-full sm:w-auto md:w-[158px]"
-            href="https://nextjs.org/docs?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-            target="_blank"
-            rel="noopener noreferrer"
-          >
-            Read our docs
+
+          {/* Pesanan */}
+          <a href="/admin/pesanan" className="flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-white p-3 shadow-md active:scale-[0.98] transition" aria-label="Pesanan">
+            {/* Ikon daftar / bag */}
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <path d="M7 7V6a5 5 0 0 1 10 0v1" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M5 8h14l-1.2 11.1A2 2 0 0 1 15.81 21H8.19a2 2 0 0 1-1.99-1.9L5 8Z" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M9 12h6M9 16h6" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+            </svg>
+            <span className="text-xs font-medium text-gray-900">Pesanan</span>
+          </a>
+
+          {/* Voucher */}
+          <a href="/admin/voucher" className="flex flex-col items-center justify-center gap-1.5 rounded-2xl bg-white p-3 shadow-md active:scale-[0.98] transition" aria-label="Voucher">
+            {/* Ikon voucher / ticket percent */}
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+              <rect x="3" y="6" width="18" height="12" rx="2.2" stroke="currentColor" strokeWidth="1.5" />
+              <path d="M8 16l8-8" stroke="currentColor" strokeWidth="1.5" strokeLinecap="round" />
+              <circle cx="8" cy="10" r="1" fill="currentColor" />
+              <circle cx="16" cy="14" r="1" fill="currentColor" />
+            </svg>
+            <span className="text-xs font-medium text-gray-900">Voucher</span>
           </a>
         </div>
-      </main>
-      <footer className="row-start-3 flex gap-[24px] flex-wrap items-center justify-center">
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org/learn?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/file.svg"
-            alt="File icon"
-            width={16}
-            height={16}
-          />
-          Learn
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://vercel.com/templates?framework=next.js&utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/window.svg"
-            alt="Window icon"
-            width={16}
-            height={16}
-          />
-          Examples
-        </a>
-        <a
-          className="flex items-center gap-2 hover:underline hover:underline-offset-4"
-          href="https://nextjs.org?utm_source=create-next-app&utm_medium=appdir-template-tw&utm_campaign=create-next-app"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          <Image
-            aria-hidden
-            src="/globe.svg"
-            alt="Globe icon"
-            width={16}
-            height={16}
-          />
-          Go to nextjs.org →
-        </a>
-      </footer>
-    </div>
+      </section>
+
+      {/* Stats (cards putih, tanpa border) */}
+      <section className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
+        <div className="rounded-2xl bg-white p-5 shadow-md hover:shadow-lg transition-shadow">
+          <div className="text-sm text-gray-500">Total Pesanan</div>
+          <div className="mt-2 flex items-baseline gap-2">
+            <div className="text-2xl font-bold">1,284</div>
+            <span className="text-xs px-2 py-0.5 rounded-full bg-green-100 text-green-700">+8%</span>
+          </div>
+          <div className="mt-3 h-2 rounded-full bg-gray-100">
+            <div className="h-2 rounded-full bg-black w-3/5" />
+          </div>
+        </div>
+
+        <div className="rounded-2xl bg-white p-5 shadow-md hover:shadow-lg transition-shadow">
+          <div className="text-sm text-gray-500">Pendapatan</div>
+          <div className="mt-2 text-2xl font-bold">Rp 87.450.000</div>
+          <div className="mt-3 h-2 rounded-full bg-gray-100">
+            <div className="h-2 rounded-full bg-black w-2/3" />
+          </div>
+        </div>
+
+        <div className="rounded-2xl bg-white p-5 shadow-md hover:shadow-lg transition-shadow">
+          <div className="text-sm text-gray-500">Tiket Baru</div>
+          <div className="mt-2 text-2xl font-bold">42</div>
+          <div className="mt-3 h-2 rounded-full bg-gray-100">
+            <div className="h-2 rounded-full bg-black w-1/3" />
+          </div>
+        </div>
+
+        <div className="rounded-2xl bg-white p-5 shadow-md hover:shadow-lg transition-shadow">
+          <div className="text-sm text-gray-500">Voucher Aktif</div>
+          <div className="mt-2 text-2xl font-bold">13</div>
+          <div className="mt-3 h-2 rounded-full bg-gray-100">
+            <div className="h-2 rounded-full bg-black w-1/4" />
+          </div>
+        </div>
+      </section>
+
+      {/* Recent activity & table */}
+      <section className="grid grid-cols-1 xl:grid-cols-3 gap-4">
+        <div className="xl:col-span-2 rounded-2xl bg-white p-5 shadow-md hover:shadow-lg transition-shadow">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Pesanan Terbaru</h2>
+            <a href="/admin/pesanan" className="text-sm text-black/70 hover:underline">
+              Lihat semua
+            </a>
+          </div>
+          <div className="mt-4 overflow-x-auto">
+            <table className="min-w-full text-sm">
+              <thead className="text-left text-gray-500">
+                <tr>
+                  <th className="py-2 pr-4">Order ID</th>
+                  <th className="py-2 pr-4">Customer</th>
+                  <th className="py-2 pr-4">Total</th>
+                  <th className="py-2 pr-4">Status</th>
+                  <th className="py-2">Tanggal</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-black/5">
+                {[
+                  { id: "ORD-2301", name: "Andi", total: "Rp 1.250.000", status: "Diproses", date: "28 Agu 2025" },
+                  { id: "ORD-2299", name: "Sinta", total: "Rp 780.000", status: "Selesai", date: "28 Agu 2025" },
+                  { id: "ORD-2295", name: "Rudi", total: "Rp 2.100.000", status: "Belum Bayar", date: "27 Agu 2025" },
+                ].map((row) => (
+                  <tr key={row.id}>
+                    <td className="py-3 pr-4 font-medium">{row.id}</td>
+                    <td className="py-3 pr-4">{row.name}</td>
+                    <td className="py-3 pr-4">{row.total}</td>
+                    <td className="py-3 pr-4">
+                      <span
+                        className={[
+                          "inline-flex items-center rounded-full px-2.5 py-0.5 text-xs",
+                          row.status === "Selesai" && "bg-green-100 text-green-700",
+                          row.status === "Diproses" && "bg-amber-100 text-amber-700",
+                          row.status === "Belum Bayar" && "bg-red-100 text-red-700",
+                        ]
+                          .filter(Boolean)
+                          .join(" ")}
+                      >
+                        {row.status}
+                      </span>
+                    </td>
+                    <td className="py-3">{row.date}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div className="rounded-2xl bg-white p-5 shadow-md hover:shadow-lg transition-shadow">
+          <h2 className="text-lg font-semibold">Aktivitas</h2>
+          <ul className="mt-4 space-y-3">
+            {[
+              { t: "Voucher ‘MERDEKA45’ digunakan", time: "1 jam lalu" },
+              { t: "Pesanan #ORD-2301 dibuat", time: "2 jam lalu" },
+              { t: "Tiket bantuan baru oleh Sinta", time: "3 jam lalu" },
+            ].map((a, i) => (
+              <li key={i} className="flex items-start gap-3">
+                <span className="mt-1 inline-block h-2 w-2 rounded-full bg-black" />
+                <div>
+                  <p className="text-sm">{a.t}</p>
+                  <p className="text-xs text-gray-500">{a.time}</p>
+                </div>
+              </li>
+            ))}
+          </ul>
+        </div>
+      </section>
+    </main>
   );
 }
