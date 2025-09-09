@@ -33,7 +33,7 @@ export function Header() {
       <div className="relative flex h-16 items-center">
         {/* Logo + brand */}
         <Link href="/" className="group flex items-center rounded-xl px-4 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-white/40">
-          <Image src={"/talance-logo.png"} alt="Talance Logo" width={40} height={40} />
+          <Image src={"/talance-logo.png"} alt="Talance Logo" width={30} height={30} />
         </Link>
         <div>
           <span>Talance Seller</span>

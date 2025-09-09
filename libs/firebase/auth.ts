@@ -1,13 +1,7 @@
-// src/libs/firebase/auth.ts
-import {
-  type User,
-  GoogleAuthProvider,
-  signInWithPopup,
-  onAuthStateChanged as _onAuthStateChanged,
-} from 'firebase/auth';
-
-import { doc, setDoc, getDoc } from 'firebase/firestore';
-import { firebaseAuth, firebaseFirestore } from './config';
+// /libs/firebase/auth.ts
+import { type User, GoogleAuthProvider, signInWithPopup, onAuthStateChanged as _onAuthStateChanged, signOut } from "firebase/auth";
+import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
+import { firebaseAuth, firebaseFirestore } from "./config";
 
 export function onAuthStateChanged(callback: (authUser: User | null) => void) {
   return _onAuthStateChanged(firebaseAuth, callback);
@@ -15,57 +9,53 @@ export function onAuthStateChanged(callback: (authUser: User | null) => void) {
 
 export async function signInWithGoogle() {
   const provider = new GoogleAuthProvider();
-
   try {
     const result = await signInWithPopup(firebaseAuth, provider);
+    if (!result?.user) throw new Error("Google sign in failed");
 
-    if (!result || !result.user) {
-      throw new Error('Google sign in failed');
-    }
     const user = result.user;
     const uid = user.uid;
-    const email = user.email || 'No email';
-    const username = user.displayName || 'No username';
 
-    const userDocRef = doc(firebaseFirestore, 'users', uid);
-    const userDoc = await getDoc(userDocRef);
+    const userDocRef = doc(firebaseFirestore, "users", uid);
+    const snapshot = await getDoc(userDocRef);
 
-    if (!userDoc.exists()) {
-      // Save user data to 'users' collection in Firestore with roles set to null
-      await setDoc(userDocRef, {
-        email,
-        username,
-        uid,
-        roles: null, // Set roles to null initially
-      });
+    const payload = {
+      uid,
+      email: user.email ?? null,
+      username: user.displayName ?? null,
+      photoURL: user.photoURL ?? null,
+      provider: "google",
+      lastLoginAt: serverTimestamp(),
+    };
+
+    if (snapshot.exists()) {
+      await setDoc(userDocRef, payload, { merge: true });
+    } else {
+      await setDoc(userDocRef, { ...payload, roles: null, createdAt: serverTimestamp() }, { merge: true });
     }
 
     return uid;
-  } catch (error) {
-    console.error('Error signing in with Google', error);
+  } catch (error: any) {
+    console.error("Error signing in with Google:", error?.code, error?.message);
+    throw error; // biar UI bisa menampilkan error code
   }
 }
 
 export async function signOutWithGoogle() {
   try {
-    await firebaseAuth.signOut();
+    await signOut(firebaseAuth);
   } catch (error) {
-    console.error('Error signing out with Google', error);
+    console.error("Error signing out with Google", error);
+    throw error;
   }
 }
 
-// Function to get user roles
 export async function getUserRoles(uid: string) {
   try {
-    const userDoc = await getDoc(doc(firebaseFirestore, 'users', uid));
-    if (userDoc.exists()) {
-      const userData = userDoc.data();
-      return userData?.roles || null;
-    } else {
-      throw new Error('No such user!');
-    }
+    const snap = await getDoc(doc(firebaseFirestore, "users", uid));
+    return snap.exists() ? snap.data()?.roles ?? null : null;
   } catch (error) {
-    console.error('Error getting user roles', error);
+    console.error("Error getting user roles", error);
     return null;
   }
 }
