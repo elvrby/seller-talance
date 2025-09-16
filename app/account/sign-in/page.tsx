@@ -9,6 +9,7 @@ import { GoogleAuthProvider, RecaptchaVerifier, signInWithPopup, signInWithPhone
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import type { FirebaseError } from "firebase/app";
 import { firebaseAuth as auth, db } from "@/libs/firebase/config";
+import PasswordField from "@/app/components/ui/PasswordField";
 
 type Tab = "email" | "phone";
 
@@ -273,15 +274,14 @@ export default function SignInPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Password</label>
-              <input
-                required
-                minLength={6}
-                type="password"
+              <PasswordField
+                label="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
+                id="signin-password"
+                name="password"
                 placeholder="kata sandi"
-                className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-gray-900 outline-none focus:border-gray-900"
+                autoComplete="current-password"
               />
             </div>
 

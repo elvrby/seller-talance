@@ -13,7 +13,7 @@ export default function ClientShell({ children }: { children: React.ReactNode })
   const router = useRouter();
 
   // Halaman tanpa header + sidebar (auth pages)
-  const HIDE_CHROME_ROUTES = ["/account/sign-in", "/account/sign-up", "/account/forget-password"];
+  const HIDE_CHROME_ROUTES = ["/account/sign-in", "/account/sign-up", "/account/forget-password", "/account/reset-password"];
 
   // Halaman yang wajib login (sesuaikan list ini)
   const PROTECTED_EXACT = ["/"]; // persis "/"

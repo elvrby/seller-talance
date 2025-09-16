@@ -1,11 +1,12 @@
 // app/account/sign-up/page.tsx
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { GoogleAuthProvider, RecaptchaVerifier, signInWithPopup, signInWithPhoneNumber, ConfirmationResult, createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { firebaseAuth as auth, db } from "@/libs/firebase/config";
+import PasswordField from "@/app/components/ui/PasswordField";
 
 type Tab = "email" | "phone";
 
@@ -16,6 +17,7 @@ export default function SignUpPage() {
   const [email, setEmail] = useState("");
   const [displayName, setDisplayName] = useState("");
   const [password, setPassword] = useState("");
+  const [password2, setPassword2] = useState("");
   const [emailLoading, setEmailLoading] = useState(false);
   const [emailMsg, setEmailMsg] = useState<string | null>(null);
   const [emailErr, setEmailErr] = useState<string | null>(null);
@@ -38,19 +40,11 @@ export default function SignUpPage() {
     if (typeof window === "undefined") return;
     if (!auth) return;
 
-    // Hanya init sekali
     if (!recaptchaRef.current) {
       recaptchaRef.current = new RecaptchaVerifier(auth, "recaptcha-container", {
         size: "invisible",
-        callback: () => {
-          // reCAPTCHA solved — lanjutkan send OTP
-        },
       });
     }
-
-    return () => {
-      // Jangan di-clear di sini; biarkan singleton selama lifecycle halaman
-    };
   }, []);
 
   const ensureUserDoc = async (uid: string, extra: Record<string, unknown> = {}) => {
@@ -72,6 +66,11 @@ export default function SignUpPage() {
     }
   };
 
+  // ======== VALIDASI EMAIL FORM ========
+  const passwordTooShort = password.trim().length > 0 && password.trim().length < 6;
+  const passwordMismatch = password2.trim().length > 0 && password.trim() !== password2.trim();
+  const emailFormValid = !!email.trim() && password.trim().length >= 6 && password.trim() === password2.trim();
+
   // =========================
   // Email + Password Sign Up
   // =========================
@@ -79,11 +78,28 @@ export default function SignUpPage() {
     e.preventDefault();
     setEmailErr(null);
     setEmailMsg(null);
+
+    // Guard VALIDASI sebelum call Firebase
+    const p1 = password.trim();
+    const p2 = password2.trim();
+    if (p1.length < 6) {
+      setEmailErr("Password minimal 6 karakter.");
+      return;
+    }
+    if (p1 !== p2) {
+      setEmailErr("Password dan konfirmasi tidak cocok.");
+      return;
+    }
+    if (!email.trim()) {
+      setEmailErr("Email wajib diisi.");
+      return;
+    }
+
     setEmailLoading(true);
     try {
-      const cred = await createUserWithEmailAndPassword(auth, email.trim(), password);
-      if (displayName) {
-        await updateProfile(cred.user, { displayName });
+      const cred = await createUserWithEmailAndPassword(auth, email.trim(), p1);
+      if (displayName.trim()) {
+        await updateProfile(cred.user, { displayName: displayName.trim() });
       }
       await ensureUserDoc(cred.user.uid, {
         provider: "password",
@@ -93,8 +109,22 @@ export default function SignUpPage() {
       // Kirim email verifikasi
       await sendEmailVerification(cred.user);
       setEmailMsg("Akun dibuat. Email verifikasi telah dikirim. Silakan cek inbox/spam dan klik tautan verifikasi.");
+
+      // Optional: kosongkan password field setelah sukses
+      setPassword("");
+      setPassword2("");
     } catch (err: any) {
-      setEmailErr(err?.message ?? "Gagal membuat akun dengan email.");
+      // Tampilkan pesan ramah
+      const code = err?.code as string | undefined;
+      if (code === "auth/email-already-in-use") {
+        setEmailErr("Email sudah terdaftar. Silakan masuk atau gunakan email lain.");
+      } else if (code === "auth/invalid-email") {
+        setEmailErr("Format email tidak valid.");
+      } else if (code === "auth/weak-password") {
+        setEmailErr("Password terlalu lemah. Gunakan minimal 6 karakter.");
+      } else {
+        setEmailErr("Gagal membuat akun. Coba lagi nanti.");
+      }
     } finally {
       setEmailLoading(false);
     }
@@ -152,7 +182,7 @@ export default function SignUpPage() {
         email: cred.user.email ?? null,
         displayName: cred.user.displayName ?? null,
       });
-    } catch (err) {
+    } catch {
       // optional: toast
     } finally {
       setGoogleLoading(false);
@@ -203,22 +233,39 @@ export default function SignUpPage() {
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">Password</label>
-              <input
-                required
-                minLength={6}
-                type="password"
+              <PasswordField
+                label="Password"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
-                placeholder="min. 6 karakter"
-                className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-gray-900 outline-none focus:border-gray-900"
+                id="signup-password"
+                name="password"
+                placeholder="minimal 6 karakter"
+                autoComplete="new-password"
               />
+              {passwordTooShort && <p className="mt-1 text-xs text-red-600">Password minimal 6 karakter.</p>}
+            </div>
+            <div>
+              <PasswordField
+                label="Konfirmasi Password"
+                value={password2}
+                onChange={(e) => setPassword2(e.target.value)}
+                id="signup-password2"
+                name="password_confirmation"
+                placeholder="ulangi password"
+                autoComplete="new-password"
+              />
+              {passwordMismatch && <p className="mt-1 text-xs text-red-600">Password dan konfirmasi tidak cocok.</p>}
             </div>
 
             {emailErr && <p className="text-sm text-red-600">{emailErr}</p>}
             {emailMsg && <p className="text-sm text-green-700">{emailMsg}</p>}
 
-            <button disabled={emailLoading} type="submit" className="w-full rounded-xl bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 disabled:opacity-60">
+            <button
+              disabled={emailLoading || !emailFormValid}
+              type="submit"
+              className="w-full rounded-xl bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 disabled:opacity-60"
+              title={!emailFormValid ? "Lengkapi form dengan benar" : undefined}
+            >
               {emailLoading ? "Memproses..." : "Daftar via Email"}
             </button>
           </form>
@@ -288,10 +335,8 @@ export default function SignUpPage() {
               </form>
             )}
 
-            {/* Info penting tentang "HP + password" */}
             <div className="rounded-lg bg-amber-50 p-3 text-amber-800 text-xs">
-              <b>Catatan:</b> Firebase Phone Auth tidak mendukung password. Jika ingin benar-benar “HP + password”, perlu backend khusus (custom auth) untuk menyimpan & memvalidasi password dengan
-              aman. Flow di atas adalah praktik aman: verifikasi via OTP.
+              <b>Catatan:</b> Firebase Phone Auth tidak memakai password. Jika ingin “HP + password”, perlu backend custom (tidak direkomendasikan untuk pemula). Flow di atas aman: verifikasi OTP.
             </div>
           </div>
         )}
