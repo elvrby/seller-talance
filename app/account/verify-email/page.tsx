@@ -59,7 +59,7 @@ export default function VerifyEmailPage() {
       await u.getIdToken(true);
 
       setMsg("Email berhasil diverifikasi! Mengalihkan…");
-      setTimeout(() => router.replace("/"), 900);
+      setTimeout(() => router.replace("/account/freelance-form"), 900);
     } catch {
       setErr("Gagal memverifikasi kode");
     } finally {
