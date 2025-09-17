@@ -3,7 +3,7 @@
 
 import React, { useEffect, useRef, useState } from "react";
 import Link from "next/link";
-import { GoogleAuthProvider, RecaptchaVerifier, signInWithPopup, signInWithPhoneNumber, ConfirmationResult, createUserWithEmailAndPassword, sendEmailVerification, updateProfile } from "firebase/auth";
+import { GoogleAuthProvider, RecaptchaVerifier, signInWithPopup, signInWithPhoneNumber, ConfirmationResult, createUserWithEmailAndPassword, updateProfile } from "firebase/auth";
 import { doc, getDoc, serverTimestamp, setDoc } from "firebase/firestore";
 import { firebaseAuth as auth, db } from "@/libs/firebase/config";
 import PasswordField from "@/app/components/ui/PasswordField";
@@ -21,8 +21,9 @@ export default function SignUpPage() {
   const [emailLoading, setEmailLoading] = useState(false);
   const [emailMsg, setEmailMsg] = useState<string | null>(null);
   const [emailErr, setEmailErr] = useState<string | null>(null);
+  const [emailAttempted, setEmailAttempted] = useState(false);
 
-  // Phone form
+  // Phone form (OTP)
   const [phone, setPhone] = useState("+62");
   const [otp, setOtp] = useState("");
   const [phoneLoading, setPhoneLoading] = useState(false);
@@ -35,11 +36,10 @@ export default function SignUpPage() {
 
   const recaptchaRef = useRef<RecaptchaVerifier | null>(null);
 
-  // Init Invisible reCAPTCHA untuk Phone Auth
+  // Init Invisible reCAPTCHA (Phone Auth)
   useEffect(() => {
     if (typeof window === "undefined") return;
     if (!auth) return;
-
     if (!recaptchaRef.current) {
       recaptchaRef.current = new RecaptchaVerifier(auth, "recaptcha-container", {
         size: "invisible",
@@ -67,54 +67,63 @@ export default function SignUpPage() {
   };
 
   // ======== VALIDASI EMAIL FORM ========
+  const displayNameMissing = emailAttempted && displayName.trim().length === 0;
   const passwordTooShort = password.trim().length > 0 && password.trim().length < 6;
   const passwordMismatch = password2.trim().length > 0 && password.trim() !== password2.trim();
-  const emailFormValid = !!email.trim() && password.trim().length >= 6 && password.trim() === password2.trim();
+  const emailFormValid = !!displayName.trim() && !!email.trim() && password.trim().length >= 6 && password.trim() === password2.trim();
 
   // =========================
-  // Email + Password Sign Up
+  // Email + Password Sign Up (OTP email)
   // =========================
   const onEmailSignUp = async (e: React.FormEvent) => {
     e.preventDefault();
+    setEmailAttempted(true);
     setEmailErr(null);
     setEmailMsg(null);
 
-    // Guard VALIDASI sebelum call Firebase
+    const name = displayName.trim();
+    const eml = email.trim();
     const p1 = password.trim();
     const p2 = password2.trim();
-    if (p1.length < 6) {
-      setEmailErr("Password minimal 6 karakter.");
-      return;
-    }
-    if (p1 !== p2) {
-      setEmailErr("Password dan konfirmasi tidak cocok.");
-      return;
-    }
-    if (!email.trim()) {
-      setEmailErr("Email wajib diisi.");
-      return;
-    }
+
+    if (!name) return setEmailErr("Nama tampilan wajib diisi.");
+    if (!eml) return setEmailErr("Email wajib diisi.");
+    if (p1.length < 6) return setEmailErr("Password minimal 6 karakter.");
+    if (p1 !== p2) return setEmailErr("Password dan konfirmasi tidak cocok.");
 
     setEmailLoading(true);
     try {
-      const cred = await createUserWithEmailAndPassword(auth, email.trim(), p1);
-      if (displayName.trim()) {
-        await updateProfile(cred.user, { displayName: displayName.trim() });
-      }
+      // 1) Buat akun
+      const cred = await createUserWithEmailAndPassword(auth, eml, p1);
+      await updateProfile(cred.user, { displayName: name });
+
+      // 2) Simpan user doc
       await ensureUserDoc(cred.user.uid, {
         provider: "password",
         emailVerified: cred.user.emailVerified ?? false,
+        displayName: name,
       });
 
-      // Kirim email verifikasi
-      await sendEmailVerification(cred.user);
-      setEmailMsg("Akun dibuat. Email verifikasi telah dikirim. Silakan cek inbox/spam dan klik tautan verifikasi.");
+      // 3) Mulai alur OTP email (server bikin kode, kirim via SMTP, set cookie ve_sid)
+      try {
+        const u = auth.currentUser;
+        if (u) {
+          const idToken = await u.getIdToken();
+          const res = await fetch("/api/auth/start-email-otp", {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({ idToken }),
+          });
+          if (!res.ok) throw new Error("start-email-otp failed");
+        }
+      } catch (err) {
+        console.error("[sign-up] start-email-otp failed");
+        setEmailMsg("Akun dibuat, tetapi gagal mengirim kode verifikasi. Coba kirim ulang di halaman verifikasi.");
+      }
 
-      // Optional: kosongkan password field setelah sukses
-      setPassword("");
-      setPassword2("");
+      // 4) Alihkan ke halaman verifikasi OTP email
+      window.location.href = "/account/verify-email";
     } catch (err: any) {
-      // Tampilkan pesan ramah
       const code = err?.code as string | undefined;
       if (code === "auth/email-already-in-use") {
         setEmailErr("Email sudah terdaftar. Silakan masuk atau gunakan email lain.");
@@ -182,6 +191,8 @@ export default function SignUpPage() {
         email: cred.user.email ?? null,
         displayName: cred.user.displayName ?? null,
       });
+      // Google biasanya sudah verified → langsung ke home
+      window.location.href = "/";
     } catch {
       // optional: toast
     } finally {
@@ -214,12 +225,14 @@ export default function SignUpPage() {
             <div>
               <label className="block text-sm font-medium text-gray-700">Nama</label>
               <input
+                required
                 type="text"
                 value={displayName}
                 onChange={(e) => setDisplayName(e.target.value)}
                 placeholder="Nama tampilan"
                 className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 text-gray-900 outline-none focus:border-gray-900"
               />
+              {displayNameMissing && <p className="mt-1 text-xs text-red-600">Nama tampilan wajib diisi.</p>}
             </div>
             <div>
               <label className="block text-sm font-medium text-gray-700">Email</label>
@@ -258,7 +271,7 @@ export default function SignUpPage() {
             </div>
 
             {emailErr && <p className="text-sm text-red-600">{emailErr}</p>}
-            {emailMsg && <p className="text-sm text-green-700">{emailMsg}</p>}
+            {emailMsg && <p className="text-sm text-emerald-700">{emailMsg}</p>}
 
             <button
               disabled={emailLoading || !emailFormValid}
@@ -290,7 +303,7 @@ export default function SignUpPage() {
                 </div>
 
                 {phoneErr && <p className="text-sm text-red-600">{phoneErr}</p>}
-                {phoneMsg && <p className="text-sm text-green-700">{phoneMsg}</p>}
+                {phoneMsg && <p className="text-sm text-emerald-700">{phoneMsg}</p>}
 
                 <button disabled={phoneLoading} type="submit" className="w-full rounded-xl bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 disabled:opacity-60">
                   {phoneLoading ? "Mengirim OTP..." : "Kirim OTP"}
@@ -313,7 +326,7 @@ export default function SignUpPage() {
                 </div>
 
                 {phoneErr && <p className="text-sm text-red-600">{phoneErr}</p>}
-                {phoneMsg && <p className="text-sm text-green-700">{phoneMsg}</p>}
+                {phoneMsg && <p className="text-sm text-emerald-700">{phoneMsg}</p>}
 
                 <div className="flex gap-2">
                   <button
@@ -336,7 +349,7 @@ export default function SignUpPage() {
             )}
 
             <div className="rounded-lg bg-amber-50 p-3 text-amber-800 text-xs">
-              <b>Catatan:</b> Firebase Phone Auth tidak memakai password. Jika ingin “HP + password”, perlu backend custom (tidak direkomendasikan untuk pemula). Flow di atas aman: verifikasi OTP.
+              <b>Catatan:</b> Firebase Phone Auth tidak memakai password. Jika ingin “HP + password”, perlu backend custom. Flow di atas aman: verifikasi OTP.
             </div>
           </div>
         )}
