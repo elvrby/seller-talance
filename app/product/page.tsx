@@ -114,7 +114,7 @@ export default function ProductsPage() {
       <div className="mb-4 flex flex-col gap-2 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-lg font-semibold sm:text-2xl">Produk Saya</h1>
 
-        <Link href="/product/add-product" className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-black px-4 py-2 text-white hover:shadow-xs active:bg-green-800 sm:w-auto">
+        <Link href="/product/add-product" className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-black px-4 py-2 text-white hover:shadow-xs active:bg-slate-900 sm:w-auto">
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
           </svg>

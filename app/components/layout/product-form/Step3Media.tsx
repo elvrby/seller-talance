@@ -55,7 +55,7 @@ export default function Step3Media({ value, onChange, bucketKey = "add-product" 
   const [previewIndex, setPreviewIndex] = useState<number>(0);
 
   // refs
-  const inputImgRef = useRef<HTMLInputElement>(null); // MULTI picker
+  const inputImgRef = useRef<HTMLInputElement>(null); // MULTI picker (hidden) — dipicu saat klik slot kosong
   const inputImgSingleRef = useRef<HTMLInputElement>(null); // single (tetap ada)
   const inputPdfRef = useRef<HTMLInputElement>(null);
   const inputVideoRef = useRef<HTMLInputElement>(null);
@@ -119,7 +119,7 @@ export default function Step3Media({ value, onChange, bucketKey = "add-product" 
     }
   }, [previewOpen, previewList, previewIndex]);
 
-  // Tutup/nafigasi dengan keyboard
+  // Tutup/navigasi dengan keyboard
   useEffect(() => {
     if (!previewOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -358,7 +358,7 @@ export default function Step3Media({ value, onChange, bucketKey = "add-product" 
     const draggable = slot.kind !== "empty";
     const handleClick = () => {
       if (slot.kind === "empty") {
-        inputImgRef.current?.click(); // tambah gambar
+        inputImgRef.current?.click(); // tambah gambar (multi)
       } else {
         // buka preview multi pada index sesuai slot
         const i = slotToPreviewIndex(idx);
@@ -370,6 +370,14 @@ export default function Step3Media({ value, onChange, bucketKey = "add-product" 
     return (
       <div
         key={idx}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleClick();
+          }
+        }}
         className={[
           "relative aspect-square w-full overflow-hidden rounded-xl border",
           slot.kind === "empty" ? "border-dashed border-gray-300 bg-gray-50" : "border-gray-200 bg-white",
@@ -439,6 +447,9 @@ export default function Step3Media({ value, onChange, bucketKey = "add-product" 
 
         {/* GRID slot — gap kecil */}
         <div className="grid grid-cols-3 gap-1">{combined.map((slot, i) => renderSlot(slot, i))}</div>
+
+        {/* input MULTI tersembunyi yang dipicu saat klik slot kosong */}
+        <input ref={inputImgRef} type="file" accept={IMG_TYPES.join(",")} multiple onChange={onPickImages} className="hidden" />
 
         {busy && <p className="mt-1 text-sm text-gray-500">Memproses…</p>}
         {err && <p className="mt-2 text-sm text-red-600">{err}</p>}

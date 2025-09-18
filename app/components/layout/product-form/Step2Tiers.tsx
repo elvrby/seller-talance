@@ -1,7 +1,7 @@
 // app/components/layout/product-form/Step2Tiers.tsx
 "use client";
 
-import { useEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState, useId } from "react";
 import type { ServiceType } from "./Step1Basic";
 
 export type TierForm = {
@@ -58,11 +58,11 @@ function CheckIcon(props: React.SVGProps<SVGSVGElement>) {
 }
 
 /* ===========================
-   Responsive Select
-   - Mobile: native <select>
-   - Desktop: custom Listbox
+   Responsive Select (unified)
+   - Mobile & Desktop: custom Listbox
 =========================== */
 type Option = { value: string | number; label: string; hint?: string };
+
 type ResponsiveSelectProps = {
   label?: string;
   value: string | number;
@@ -72,49 +72,7 @@ type ResponsiveSelectProps = {
   disabled?: boolean;
 };
 
-function useIsDesktop() {
-  const [isDesktop, set] = useState<boolean>(false);
-  useEffect(() => {
-    const mq = window.matchMedia("(min-width: 768px)");
-    const update = () => set(mq.matches);
-    update();
-    mq.addEventListener?.("change", update);
-    return () => mq.removeEventListener?.("change", update);
-  }, []);
-  return isDesktop;
-}
-
 function ResponsiveSelect({ label, value, onChange, options, placeholder = "Pilih opsi", disabled }: ResponsiveSelectProps) {
-  const isDesktop = useIsDesktop();
-
-  if (!isDesktop) {
-    // MOBILE — native select
-    return (
-      <div>
-        {label && <label className="block text-xs font-medium">{label}</label>}
-        <div className="relative mt-1">
-          <select
-            disabled={disabled}
-            value={value}
-            onChange={(e) => onChange(e.target.value)}
-            className="w-full appearance-none rounded-xl border border-gray-300 bg-white px-3 py-2 pr-9 outline-none transition focus:border-gray-900 focus:ring-4 focus:ring-gray-900/10 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
-          >
-            <option value="" disabled hidden>
-              {placeholder}
-            </option>
-            {options.map((o) => (
-              <option key={String(o.value)} value={o.value}>
-                {o.label}
-              </option>
-            ))}
-          </select>
-          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
-        </div>
-      </div>
-    );
-  }
-
-  // DESKTOP — custom listbox
   return <Listbox label={label} value={value} onChange={onChange} options={options} placeholder={placeholder} disabled={disabled} />;
 }
 
@@ -129,19 +87,23 @@ function Listbox({ label, value, onChange, options, placeholder, disabled }: Lis
   );
   const btnRef = useRef<HTMLButtonElement | null>(null);
   const popRef = useRef<HTMLDivElement | null>(null);
+  const uid = useId();
+  const popId = `listbox-popover-${uid}`;
 
+  // Tutup saat klik/ketuk di luar — pakai pointerdown agar mobile oke
   useEffect(() => {
-    const handler = (e: MouseEvent) => {
+    const handler = (e: PointerEvent) => {
       if (!open) return;
       const t = e.target as Node;
       if (!btnRef.current?.contains(t) && !popRef.current?.contains(t)) {
         setOpen(false);
       }
     };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
+    document.addEventListener("pointerdown", handler);
+    return () => document.removeEventListener("pointerdown", handler);
   }, [open]);
 
+  // Sinkronkan activeIndex saat value/options berubah
   useEffect(() => {
     setActiveIndex(
       Math.max(
@@ -181,6 +143,7 @@ function Listbox({ label, value, onChange, options, placeholder, disabled }: Lis
   return (
     <div className="relative">
       {label && <label className="block text-xs font-medium">{label}</label>}
+
       <button
         ref={btnRef}
         type="button"
@@ -189,11 +152,11 @@ function Listbox({ label, value, onChange, options, placeholder, disabled }: Lis
         onKeyDown={onKeyDown}
         className={[
           "mt-1 flex w-full items-center justify-between rounded-xl border border-gray-300 bg-white px-3 py-2",
-          "outline-none transition focus:border-gray-900 focus:ring-4 focus:ring-gray-900/10",
           "disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400",
         ].join(" ")}
         aria-haspopup="listbox"
         aria-expanded={open}
+        aria-controls={popId}
       >
         <span className="truncate text-left">
           {selected ? (
@@ -210,7 +173,7 @@ function Listbox({ label, value, onChange, options, placeholder, disabled }: Lis
 
       {/* Popover */}
       {open && (
-        <div ref={popRef} className="absolute z-20 mt-2 w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl" role="listbox" tabIndex={-1} onKeyDown={onKeyDown}>
+        <div id={popId} ref={popRef} className="absolute z-30 mt-2 w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl" role="listbox" tabIndex={-1} onKeyDown={onKeyDown}>
           <div className="max-h-64 overflow-auto py-1">
             {options.map((o, i) => {
               const isActive = i === activeIndex;
@@ -222,6 +185,7 @@ function Listbox({ label, value, onChange, options, placeholder, disabled }: Lis
                   aria-selected={isSelected}
                   className={["flex cursor-pointer items-center justify-between px-3 py-2 text-sm", isActive ? "bg-gray-50" : ""].join(" ")}
                   onMouseEnter={() => setActiveIndex(i)}
+                  onTouchStart={() => setActiveIndex(i)}
                   onClick={() => {
                     onChange(o.value);
                     setOpen(false);
@@ -243,7 +207,7 @@ function Listbox({ label, value, onChange, options, placeholder, disabled }: Lis
 }
 
 /* ===========================
-   Fancy Checkbox (dipertahankan, polished)
+   Fancy Checkbox (polished)
 =========================== */
 type FancyCheckboxProps = {
   checked: boolean;
@@ -341,22 +305,30 @@ export default function Step2Tiers({ serviceType, value, onChange }: Props) {
                   />
                 </div>
 
-                {/* Waktu (Responsive Select) */}
+                {/* Waktu (Listbox unified) */}
                 <ResponsiveSelect label="Waktu Pengerjaan" value={v.deliveryDays} onChange={(val) => update(t, { deliveryDays: Number(val) })} options={deliveryOptions} placeholder="Pilih durasi" />
 
-                {/* Revisi (Responsive Select) */}
+                {/* Revisi (Listbox unified) */}
                 <ResponsiveSelect label="Total Revisi" value={v.revisions} onChange={(val) => update(t, { revisions: Number(val) })} options={revisionOptions} placeholder="Pilih revisi" />
 
                 {/* Harga */}
                 <div>
                   <label className="block text-xs font-medium">Harga (min Rp 15.000)</label>
                   <input
-                    type="number"
-                    min={15000}
-                    step={1000}
-                    value={v.price}
-                    onChange={(e) => update(t, { price: Number(e.target.value) })}
+                    type="text"
+                    inputMode="numeric"
+                    autoComplete="off"
+                    value={v.price ? new Intl.NumberFormat("id-ID").format(v.price) : ""}
+                    onChange={(e) => {
+                      const digits = e.target.value.replace(/\D/g, "");
+                      const num = digits ? Number(digits) : 0;
+                      update(t, { price: num });
+                    }}
+                    onBlur={() => {
+                      if (v.price && v.price < 15000) update(t, { price: 15000 });
+                    }}
                     className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 outline-none transition focus:border-gray-900 focus:ring-4 focus:ring-gray-900/10"
+                    placeholder="15.000"
                   />
                 </div>
 
