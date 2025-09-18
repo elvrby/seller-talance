@@ -1,4 +1,3 @@
-// app/product/add-product/page.tsx
 "use client";
 
 import { useMemo, useState } from "react";
@@ -113,7 +112,6 @@ export default function AddProductPage() {
     return validTier(draft.tiers.basic);
   }, [draft.tiers]);
 
-  // Step-3 (media) — bolehin lanjut walau belum ada (kalau mau wajib, ubah ke: draft.media.images.length > 0 atau ada pending)
   const canNext3 = true;
 
   // Back (ikon)
@@ -173,7 +171,7 @@ export default function AddProductPage() {
       const coverUrlTop = draft.media.coverUrl ?? allUrls[0];
       if (coverUrlTop) mediaPayload.coverUrl = coverUrlTop;
 
-      // 4) Payload Firestore
+      // 4) Payload Firestore (subkoleksi user)
       const payload: any = {
         ownerId: user.uid,
         title: draft.title.trim(),
@@ -188,24 +186,14 @@ export default function AddProductPage() {
         updatedAt: serverTimestamp(),
       };
 
-      // 5) Simpan ke koleksi products
-      const ref = await addDoc(collection(db, "products"), payload);
+      // 5) Simpan ke users/{uid}/products
+      const colRef = collection(db, "users", user.uid, "products");
+      const ref = await addDoc(colRef, payload);
 
-      // 6) Tambah ringkasan ke users/{uid}/products/{productId}
-      await setDoc(
-        doc(db, "users", user.uid, "products", ref.id),
-        {
-          productId: ref.id,
-          title: payload.title,
-          serviceType: payload.serviceType,
-          status: payload.status,
-          coverUrl: payload.coverUrl ?? null,
-          createdAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
+      // Simpan productId sebagai field juga (memudahkan query/marketplace)
+      await setDoc(doc(db, "users", user.uid, "products", ref.id), { productId: ref.id }, { merge: true });
 
-      // 7) Beres → kosongkan bucket & pointer
+      // 6) Beres → kosongkan bucket & pointer
       clearAll(bucketId);
       clearBucketByKey(BUCKET_KEY);
 
@@ -213,7 +201,7 @@ export default function AddProductPage() {
     } catch (e: any) {
       console.error("[add-product] save error:", e?.code, e?.message, e);
       if (e?.code === "permission-denied") {
-        alert("Tidak punya izin menulis ke Firestore. Cek rules koleksi products dan users/*/products.");
+        alert("Tidak punya izin menulis ke Firestore. Cek rules users/{uid}/products.");
       } else if (e?.message?.includes("Unsupported field value: undefined")) {
         alert("Ada field bernilai undefined. Pastikan semua input terisi.");
       } else if (e?.message?.includes("Upload ke Cloudinary gagal")) {
@@ -265,7 +253,7 @@ export default function AddProductPage() {
 
       {/* Footer actions */}
       <div className="mt-6 flex items-center justify-end gap-2">
-        <button type="button" onClick={cancelCreate} className="rounded-xl border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-100">
+        <button type="button" onClick={cancelCreate} className="rounded-xl border border-red-600 px-4 py-2 text-red-700 hover:bg-red-100">
           Cancel
         </button>
 

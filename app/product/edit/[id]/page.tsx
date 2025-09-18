@@ -1,4 +1,3 @@
-// app/product/edit/[id]/page.tsx
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
@@ -147,7 +146,7 @@ export default function EditProductPage() {
     if (!user || !productId) return;
     (async () => {
       try {
-        const ref = doc(db, "products", productId);
+        const ref = doc(db, "users", user.uid, "products", productId);
         const snap = await getDoc(ref);
         if (!snap.exists()) {
           setNotFound(true);
@@ -156,6 +155,7 @@ export default function EditProductPage() {
         }
         const data = snap.data();
         const d = toDraft(data);
+        // path memastikan kepemilikan, tambahan check opsional:
         if (d.ownerId && d.ownerId !== user.uid) {
           setForbidden(true);
           setLoading(false);
@@ -247,7 +247,7 @@ export default function EditProductPage() {
       if (isString(coverUrlTop)) mediaPayload.coverUrl = coverUrlTop;
       if (pdfUrlFinal) mediaPayload.pdfUrl = pdfUrlFinal;
 
-      // 3) Update Firestore
+      // 3) Update Firestore pada path users/{uid}/products/{productId}
       const payload: any = {
         title: draft.title.trim(),
         serviceType: draft.serviceType,
@@ -260,23 +260,9 @@ export default function EditProductPage() {
         updatedAt: serverTimestamp(),
       };
 
-      await updateDoc(doc(db, "products", productId), payload);
+      await updateDoc(doc(db, "users", user.uid, "products", productId), payload);
 
-      // ringkasan di users/{uid}/products/{productId}
-      await setDoc(
-        doc(db, "users", user.uid, "products", productId),
-        {
-          productId,
-          title: payload.title,
-          serviceType: payload.serviceType,
-          status: payload.status,
-          coverUrl: payload.coverUrl ?? null,
-          updatedAt: serverTimestamp(),
-        },
-        { merge: true }
-      );
-
-      // 4) Pending delete → hapus di Cloudinary
+      // (opsional) pending delete → hapus di Cloudinary via endpoint admin kamu
       const rawDeletes = listPendingDeletes(bucketId);
       const publicIdsToDelete: string[] = rawDeletes.map((x) => publicIdFromUrl(x) ?? x).filter(isString);
 
@@ -288,7 +274,7 @@ export default function EditProductPage() {
         }).catch((e) => console.warn("[cloudinary] delete error:", e));
       }
 
-      // 5) Clear bucket & pointer
+      // 4) Clear bucket & pointer
       clearAll(bucketId);
       clearBucketByKey(BUCKET_KEY);
 
@@ -341,14 +327,14 @@ export default function EditProductPage() {
         <Step3Media
           value={draft.media}
           onChange={(media) => setDraft((d) => ({ ...d, media }))}
-          bucketKey={BUCKET_KEY} // <- unik per sesi edit
+          bucketKey={BUCKET_KEY} // unik per sesi edit
         />
       )}
       {step === 4 && <Step4Customize qaTemplate={draft.qaTemplate} status={draft.status} onChange={(payload) => setDraft((d) => ({ ...d, ...payload }))} />}
 
       {/* Footer actions */}
       <div className="mt-6 flex items-center justify-end gap-2">
-        <button type="button" onClick={cancelEdit} className="rounded-xl border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-100">
+        <button type="button" onClick={cancelEdit} className="rounded-xl border border-red-600 px-4 py-2 text-red-700 hover:bg-red-100">
           Cancel
         </button>
 

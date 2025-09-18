@@ -1,15 +1,15 @@
 // app/components/layout/product-form/Step2Tiers.tsx
 "use client";
 
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import type { ServiceType } from "./Step1Basic";
 
 export type TierForm = {
-  description: string; // <= 400 chars
+  description: string;
   deliveryDays: number; // 1..10
-  revisions: number; // 0..10 (0=none), gunakan 99 utk unlimited jika mau
-  price: number; // >= 15000
-  specials: Record<string, boolean>; // dynamic keys, ex: sourceCode, seoOptimization
+  revisions: number; // 0..10 (99=unlimited)
+  price: number; // >=15000
+  specials: Record<string, boolean>;
 };
 
 type Props = {
@@ -18,7 +18,6 @@ type Props = {
   onChange: (tiers: Props["value"]) => void;
 };
 
-// Specials per service type
 const SPECIALS_BY_TYPE: Record<ServiceType, Array<{ key: string; label: string }>> = {
   Web: [
     { key: "sourceCode", label: "Source code" },
@@ -40,13 +39,245 @@ const SPECIALS_BY_TYPE: Record<ServiceType, Array<{ key: string; label: string }
 
 const TIERS: Array<keyof Props["value"]> = ["basic", "standard", "premium"];
 
+/* ===========================
+   UI Icons (no deps)
+=========================== */
+function ChevronDown(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 20 20" aria-hidden="true" fill="currentColor" {...props}>
+      <path d="M5.23 7.21a.75.75 0 011.06.02L10 10.06l3.71-2.83a.75.75 0 11.92 1.18l-4.25 3.25a.75.75 0 01-.92 0L5.21 8.41a.75.75 0 01.02-1.2z" />
+    </svg>
+  );
+}
+function CheckIcon(props: React.SVGProps<SVGSVGElement>) {
+  return (
+    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.5" {...props}>
+      <path strokeLinecap="round" strokeLinejoin="round" d="M5 10.5l3 3 7-7" />
+    </svg>
+  );
+}
+
+/* ===========================
+   Responsive Select
+   - Mobile: native <select>
+   - Desktop: custom Listbox
+=========================== */
+type Option = { value: string | number; label: string; hint?: string };
+type ResponsiveSelectProps = {
+  label?: string;
+  value: string | number;
+  onChange: (v: string | number) => void;
+  options: Option[];
+  placeholder?: string;
+  disabled?: boolean;
+};
+
+function useIsDesktop() {
+  const [isDesktop, set] = useState<boolean>(false);
+  useEffect(() => {
+    const mq = window.matchMedia("(min-width: 768px)");
+    const update = () => set(mq.matches);
+    update();
+    mq.addEventListener?.("change", update);
+    return () => mq.removeEventListener?.("change", update);
+  }, []);
+  return isDesktop;
+}
+
+function ResponsiveSelect({ label, value, onChange, options, placeholder = "Pilih opsi", disabled }: ResponsiveSelectProps) {
+  const isDesktop = useIsDesktop();
+
+  if (!isDesktop) {
+    // MOBILE — native select
+    return (
+      <div>
+        {label && <label className="block text-xs font-medium">{label}</label>}
+        <div className="relative mt-1">
+          <select
+            disabled={disabled}
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            className="w-full appearance-none rounded-xl border border-gray-300 bg-white px-3 py-2 pr-9 outline-none transition focus:border-gray-900 focus:ring-4 focus:ring-gray-900/10 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400"
+          >
+            <option value="" disabled hidden>
+              {placeholder}
+            </option>
+            {options.map((o) => (
+              <option key={String(o.value)} value={o.value}>
+                {o.label}
+              </option>
+            ))}
+          </select>
+          <ChevronDown className="pointer-events-none absolute right-2 top-1/2 h-5 w-5 -translate-y-1/2 text-gray-400" />
+        </div>
+      </div>
+    );
+  }
+
+  // DESKTOP — custom listbox
+  return <Listbox label={label} value={value} onChange={onChange} options={options} placeholder={placeholder} disabled={disabled} />;
+}
+
+type ListboxProps = ResponsiveSelectProps;
+function Listbox({ label, value, onChange, options, placeholder, disabled }: ListboxProps) {
+  const [open, setOpen] = useState(false);
+  const [activeIndex, setActiveIndex] = useState<number>(() =>
+    Math.max(
+      0,
+      options.findIndex((o) => String(o.value) === String(value))
+    )
+  );
+  const btnRef = useRef<HTMLButtonElement | null>(null);
+  const popRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const handler = (e: MouseEvent) => {
+      if (!open) return;
+      const t = e.target as Node;
+      if (!btnRef.current?.contains(t) && !popRef.current?.contains(t)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handler);
+    return () => document.removeEventListener("mousedown", handler);
+  }, [open]);
+
+  useEffect(() => {
+    setActiveIndex(
+      Math.max(
+        0,
+        options.findIndex((o) => String(o.value) === String(value))
+      )
+    );
+  }, [value, options]);
+
+  const selected = options.find((o) => String(o.value) === String(value));
+
+  const onKeyDown = (e: React.KeyboardEvent) => {
+    if (!open && (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ")) {
+      e.preventDefault();
+      setOpen(true);
+      return;
+    }
+    if (!open) return;
+
+    if (e.key === "ArrowDown") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.min(i + 1, options.length - 1));
+    } else if (e.key === "ArrowUp") {
+      e.preventDefault();
+      setActiveIndex((i) => Math.max(i - 1, 0));
+    } else if (e.key === "Enter") {
+      e.preventDefault();
+      const opt = options[activeIndex];
+      if (opt) onChange(opt.value);
+      setOpen(false);
+    } else if (e.key === "Escape") {
+      e.preventDefault();
+      setOpen(false);
+    }
+  };
+
+  return (
+    <div className="relative">
+      {label && <label className="block text-xs font-medium">{label}</label>}
+      <button
+        ref={btnRef}
+        type="button"
+        disabled={disabled}
+        onClick={() => setOpen((s) => !s)}
+        onKeyDown={onKeyDown}
+        className={[
+          "mt-1 flex w-full items-center justify-between rounded-xl border border-gray-300 bg-white px-3 py-2",
+          "outline-none transition focus:border-gray-900 focus:ring-4 focus:ring-gray-900/10",
+          "disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-gray-400",
+        ].join(" ")}
+        aria-haspopup="listbox"
+        aria-expanded={open}
+      >
+        <span className="truncate text-left">
+          {selected ? (
+            <span className="flex items-center gap-2">
+              <span className="truncate">{selected.label}</span>
+              {selected.hint && <span className="rounded-full border border-gray-200 px-2 py-0.5 text-[10px] text-gray-500">{selected.hint}</span>}
+            </span>
+          ) : (
+            <span className="text-gray-400">{placeholder}</span>
+          )}
+        </span>
+        <ChevronDown className={`h-5 w-5 text-gray-400 transition ${open ? "rotate-180" : ""}`} />
+      </button>
+
+      {/* Popover */}
+      {open && (
+        <div ref={popRef} className="absolute z-20 mt-2 w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl" role="listbox" tabIndex={-1} onKeyDown={onKeyDown}>
+          <div className="max-h-64 overflow-auto py-1">
+            {options.map((o, i) => {
+              const isActive = i === activeIndex;
+              const isSelected = String(o.value) === String(value);
+              return (
+                <div
+                  key={String(o.value)}
+                  role="option"
+                  aria-selected={isSelected}
+                  className={["flex cursor-pointer items-center justify-between px-3 py-2 text-sm", isActive ? "bg-gray-50" : ""].join(" ")}
+                  onMouseEnter={() => setActiveIndex(i)}
+                  onClick={() => {
+                    onChange(o.value);
+                    setOpen(false);
+                  }}
+                >
+                  <div className="flex min-w-0 items-center gap-2">
+                    <span className="truncate">{o.label}</span>
+                    {o.hint && <span className="hidden md:inline-block rounded-full border border-gray-200 px-2 py-0.5 text-[10px] text-gray-500">{o.hint}</span>}
+                  </div>
+                  {isSelected && <CheckIcon className="h-4 w-4 text-gray-900" />}
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ===========================
+   Fancy Checkbox (dipertahankan, polished)
+=========================== */
+type FancyCheckboxProps = {
+  checked: boolean;
+  onChange: () => void;
+  label: string;
+  rounded?: "md" | "lg" | "full";
+};
+function FancyCheckbox({ checked, onChange, label, rounded = "lg" }: FancyCheckboxProps) {
+  return (
+    <button type="button" onClick={onChange} className="group inline-flex select-none items-center gap-2" aria-pressed={checked}>
+      <span
+        className={[
+          "inline-flex h-5 w-5 items-center justify-center border transition-all duration-150",
+          checked ? "border-gray-900 bg-gray-900 text-white" : "border-gray-300 bg-white text-transparent",
+          rounded === "full" ? "rounded-full" : rounded === "md" ? "rounded-md" : "rounded-lg",
+          "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-gray-900/10",
+        ].join(" ")}
+      >
+        <CheckIcon className={["h-3.5 w-3.5 transition", checked ? "opacity-100 scale-100" : "opacity-0 scale-75"].join(" ")} />
+      </span>
+      <span className="text-sm">{label}</span>
+    </button>
+  );
+}
+
+/* ===========================
+   Main Component
+=========================== */
 export default function Step2Tiers({ serviceType, value, onChange }: Props) {
   const specials = useMemo(() => {
     if (!serviceType) return [];
     return SPECIALS_BY_TYPE[serviceType] || [];
   }, [serviceType]);
 
-  // Pastikan kunci specials tersedia/di-reset saat ganti kategori
   useEffect(() => {
     if (!serviceType) return;
     const keys = specials.map((s) => s.key);
@@ -65,6 +296,22 @@ export default function Step2Tiers({ serviceType, value, onChange }: Props) {
     onChange({ ...value, [tier]: { ...value[tier], ...patch } });
   };
 
+  // Opsi modern (dengan hint kecil biar terlihat “rich”)
+  const deliveryOptions: Option[] = Array.from({ length: 10 }, (_, i) => i + 1).map((d) => ({
+    value: d,
+    label: `${d} hari`,
+    hint: d <= 3 ? "Cepat" : d >= 8 ? "Santai" : undefined,
+  }));
+  const revisionOptions: Option[] = [
+    { value: 0, label: "Tanpa revisi" },
+    ...Array.from({ length: 10 }, (_, i) => i + 1).map((r) => ({
+      value: r,
+      label: `${r}x`,
+      hint: r >= 5 ? "Fleksibel" : undefined,
+    })),
+    { value: 99, label: "Unlimited" },
+  ];
+
   return (
     <section className="space-y-6">
       {!serviceType && (
@@ -73,6 +320,7 @@ export default function Step2Tiers({ serviceType, value, onChange }: Props) {
         </div>
       )}
 
+      {/* Responsive grid: 1 col mobile, 3 col desktop */}
       <div className="grid grid-cols-1 gap-4 md:grid-cols-3">
         {TIERS.map((t) => {
           const v = value[t];
@@ -87,45 +335,17 @@ export default function Step2Tiers({ serviceType, value, onChange }: Props) {
                   <textarea
                     value={v.description}
                     onChange={(e) => update(t, { description: e.target.value })}
-                    className="mt-1 h-24 w-full resize-none rounded-xl border border-gray-300 px-3 py-2 outline-none focus:border-gray-900"
-                    maxLength={2000} // batasan kasar; validasi “≤ 400 kata” akan di server/submit
+                    className="mt-1 h-24 w-full resize-none rounded-xl border border-gray-300 px-3 py-2 outline-none transition focus:border-gray-900 focus:ring-4 focus:ring-gray-900/10"
+                    maxLength={2000}
                     placeholder="Ceritakan apa yang didapat pembeli di tier ini…"
                   />
                 </div>
 
-                {/* Waktu */}
-                <div>
-                  <label className="block text-xs font-medium">Waktu Pengerjaan</label>
-                  <select
-                    value={v.deliveryDays}
-                    onChange={(e) => update(t, { deliveryDays: Number(e.target.value) })}
-                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 outline-none focus:border-gray-900"
-                  >
-                    {Array.from({ length: 10 }, (_, i) => i + 1).map((d) => (
-                      <option key={d} value={d}>
-                        {d} hari
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                {/* Waktu (Responsive Select) */}
+                <ResponsiveSelect label="Waktu Pengerjaan" value={v.deliveryDays} onChange={(val) => update(t, { deliveryDays: Number(val) })} options={deliveryOptions} placeholder="Pilih durasi" />
 
-                {/* Revisi */}
-                <div>
-                  <label className="block text-xs font-medium">Total Revisi</label>
-                  <select
-                    value={v.revisions}
-                    onChange={(e) => update(t, { revisions: Number(e.target.value) })}
-                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 outline-none focus:border-gray-900"
-                  >
-                    <option value={0}>0</option>
-                    {Array.from({ length: 10 }, (_, i) => i + 1).map((r) => (
-                      <option key={r} value={r}>
-                        {r}x
-                      </option>
-                    ))}
-                    <option value={99}>Unlimited</option>
-                  </select>
-                </div>
+                {/* Revisi (Responsive Select) */}
+                <ResponsiveSelect label="Total Revisi" value={v.revisions} onChange={(val) => update(t, { revisions: Number(val) })} options={revisionOptions} placeholder="Pilih revisi" />
 
                 {/* Harga */}
                 <div>
@@ -136,7 +356,7 @@ export default function Step2Tiers({ serviceType, value, onChange }: Props) {
                     step={1000}
                     value={v.price}
                     onChange={(e) => update(t, { price: Number(e.target.value) })}
-                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 outline-none focus:border-gray-900"
+                    className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 outline-none transition focus:border-gray-900 focus:ring-4 focus:ring-gray-900/10"
                   />
                 </div>
 
@@ -147,12 +367,7 @@ export default function Step2Tiers({ serviceType, value, onChange }: Props) {
                     <div className="space-y-1">
                       {specials.map((s) => {
                         const checked = Boolean(v.specials?.[s.key]);
-                        return (
-                          <label key={s.key} className="flex items-center gap-2 text-sm">
-                            <input type="checkbox" checked={checked} onChange={() => update(t, { specials: { ...v.specials, [s.key]: !checked } })} className="h-4 w-4" />
-                            <span>{s.label}</span>
-                          </label>
-                        );
+                        return <FancyCheckbox key={s.key} checked={checked} onChange={() => update(t, { specials: { ...v.specials, [s.key]: !checked } })} label={s.label} rounded="lg" />;
                       })}
                     </div>
                   </div>
