@@ -9,8 +9,8 @@ import { useAuthGuard } from "@/app/hooks/use-auth-guard";
 import DeleteConfirm from "@/app/components/ui/delete";
 
 type ProductRow = {
-  id: string; // Firestore doc id
-  productId?: string; // redundan (kita set = doc id saat add)
+  id: string;
+  productId?: string;
   title: string;
   serviceType: string | null;
   subServices: string[];
@@ -31,7 +31,7 @@ export default function ProductsPage() {
   const [items, setItems] = useState<ProductRow[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // state untuk modal delete
+  // modal delete
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [target, setTarget] = useState<ProductRow | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -72,13 +72,11 @@ export default function ProductsPage() {
     return () => unsub();
   }, [user]);
 
-  // buka modal delete
   const askDelete = (item: ProductRow) => {
     setTarget(item);
     setConfirmOpen(true);
   };
 
-  // konfirmasi hapus (panggil API server yang sudah kita buat)
   const onConfirmDelete = async () => {
     if (!target) return;
     try {
@@ -96,12 +94,10 @@ export default function ProductsPage() {
         throw new Error(j?.error || "delete_failed");
       }
 
-      // sukses → tutup modal, target direset
       setConfirmOpen(false);
       setTarget(null);
     } catch (e) {
       console.error("[products] delete error:", e);
-      // boleh ganti toast kamu sendiri
       alert("Gagal menghapus produk.");
     } finally {
       setDeleting(false);
@@ -113,79 +109,107 @@ export default function ProductsPage() {
   }
 
   return (
-    <main className="mx-auto max-w-5xl p-4">
+    <main className="mx-auto w-full max-w-5xl px-3 py-4 sm:px-4 md:px-6">
       {/* Header */}
-      <div className="mb-6 flex items-center justify-between">
-        <h1 className="text-2xl font-semibold">Produk Saya</h1>
-        <Link href="/product/add-product" className="inline-flex items-center gap-2 rounded-xl bg-gray-900 px-4 py-2 text-white hover:bg-gray-800">
+      <div className="mb-4 flex flex-col gap-2 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
+        <h1 className="text-lg font-semibold sm:text-2xl">Produk Saya</h1>
+
+        <Link href="/product/add-product" className="inline-flex w-full items-center justify-center gap-2 rounded-xl bg-black px-4 py-2 text-white hover:shadow-xs active:bg-green-800 sm:w-auto">
           <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
             <path strokeLinecap="round" strokeLinejoin="round" d="M12 5v14M5 12h14" />
           </svg>
-          Tambahkan Produk
+          <span className="text-sm font-medium">Tambahkan Produk</span>
         </Link>
       </div>
 
       {/* Empty state */}
       {!loading && items.length === 0 && (
-        <div className="rounded-xl border border-dashed p-8 text-center text-sm text-gray-500">
+        <div className="rounded-xl border border-dashed p-6 text-center text-sm text-gray-500 sm:p-8">
           Belum ada produk. Klik <span className="font-medium text-gray-900">“Tambahkan Produk”</span> untuk membuat.
         </div>
       )}
 
       {/* List */}
-      <ul className="space-y-3">
+      <ul className="space-y-2 sm:space-y-3">
         {items.map((it) => {
           const thumb = it.coverUrl ?? (Array.isArray(it.media?.images) && it.media!.images!.length > 0 ? it.media!.images![0] : undefined) ?? "https://placehold.co/160x160?text=No+Image";
 
           return (
-            <li key={it.id} className="flex items-center gap-4 rounded-xl border border-gray-200 p-3 hover:bg-gray-50">
-              {/* Thumbnail kiri */}
-              <div className="h-20 w-20 flex-shrink-0 overflow-hidden rounded-lg bg-gray-100">
-                {/* Pakai <Image> jika domain Cloudinary sudah diizinkan di next.config */}
-                <img src={thumb} alt={it.title} className="h-full w-full object-cover" loading="lazy" />
-              </div>
-
-              {/* Tengah: judul + meta */}
-              <div className="min-w-0 flex-1">
-                <div className="flex items-center gap-2">
-                  <Link href={`/product/edit/${it.id}`} className="truncate text-base font-medium text-gray-900 hover:underline" title={it.title}>
-                    {it.title}
-                  </Link>
-                  <span
-                    className={["inline-flex items-center rounded-full px-2 py-0.5 text-xs", it.status === "published" ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800"].join(" ")}
-                    title={`Status: ${it.status ?? "draft"}`}
-                  >
-                    {it.status ?? "draft"}
-                  </span>
+            <li key={it.id} className="rounded-xl border border-gray-200 p-3 transition hover:bg-gray-50 sm:p-3.5">
+              {/* MOBILE-FIRST: grid area */}
+              <div className="grid grid-cols-[64px_1fr] grid-rows-[auto_auto_auto] gap-x-3 gap-y-2 sm:grid-cols-[96px_1fr_auto] sm:grid-rows-[auto_auto] sm:items-center">
+                {/* Thumbnail */}
+                <div className="row-span-2 h-16 w-16 overflow-hidden rounded-lg bg-gray-100 sm:h-24 sm:w-24">
+                  <img src={thumb} alt={it.title} className="h-full w-full object-cover" loading="lazy" />
                 </div>
 
-                {/* chips service */}
-                <div className="mt-1 flex flex-wrap items-center gap-1 text-xs text-gray-600">
-                  {it.serviceType && <span className="rounded-full bg-gray-100 px-2 py-0.5">{it.serviceType}</span>}
-                  {it.subServices?.slice(0, 3).map((s) => (
-                    <span key={s} className="rounded-full bg-gray-100 px-2 py-0.5">
-                      {s}
+                {/* Title + status */}
+                <div className="min-w-0">
+                  <div className="flex items-start gap-2 sm:items-center">
+                    <Link href={`/product/edit/${it.id}`} className="truncate text-sm font-medium text-gray-900 hover:underline sm:text-base" title={it.title}>
+                      {it.title}
+                    </Link>
+                    <span
+                      className={[
+                        "inline-flex shrink-0 items-center rounded-full px-2 py-0.5 text-[10px] sm:text-xs",
+                        it.status === "published" ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-800",
+                      ].join(" ")}
+                      title={`Status: ${it.status ?? "draft"}`}
+                    >
+                      {it.status ?? "draft"}
                     </span>
-                  ))}
-                  {it.subServices && it.subServices.length > 3 && <span className="text-gray-400">+{it.subServices.length - 3}</span>}
+                  </div>
+
+                  {/* Chips service */}
+                  <div className="mt-1 flex flex-wrap items-center gap-1 text-[11px] text-gray-600 sm:text-xs">
+                    {it.serviceType && <span className="rounded-full bg-gray-100 px-2 py-0.5">{it.serviceType}</span>}
+                    {/* Tampilkan maksimal 2 di mobile, 3 di ≥sm */}
+                    {(it.subServices ?? []).slice(0, 2).map((s) => (
+                      <span key={s} className="rounded-full bg-gray-100 px-2 py-0.5">
+                        {s}
+                      </span>
+                    ))}
+                    {it.subServices && it.subServices.length > 2 && <span className="text-gray-400 sm:hidden">+{it.subServices.length - 2}</span>}
+                    {/* Tambahan satu chip lagi untuk ≥sm */}
+                    <span className="hidden sm:inline">
+                      {(it.subServices ?? []).slice(2, 3).map((s) => (
+                        <span key={s} className="ml-1 rounded-full bg-gray-100 px-2 py-0.5">
+                          {s}
+                        </span>
+                      ))}
+                      {it.subServices && it.subServices.length > 3 && <span className="ml-1 text-gray-400">+{it.subServices.length - 3}</span>}
+                    </span>
+                  </div>
                 </div>
-              </div>
 
-              {/* Actions kanan */}
-              <div className="flex items-center gap-2">
-                <Link href={`/product/edit/${it.id}`} className="inline-flex items-center gap-2 rounded-xl border border-gray-300 px-3 py-1.5 text-gray-800 hover:bg-gray-100" title="Edit">
-                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M7 17l8.485-8.485a2 2 0 112.828 2.828L9.828 19.828H7V17z" />
-                  </svg>
-                  Edit
-                </Link>
+                {/* Actions (desktop, right) */}
+                <div className="col-span-2 -mx-1 mt-1 flex items-center gap-1 sm:col-span-1 sm:mx-0 sm:mt-0 sm:justify-end sm:gap-2">
+                  {/* Edit */}
+                  <Link
+                    href={`/product/edit/${it.id}`}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 px-2.5 py-1.5 text-gray-800 hover:bg-gray-100 sm:px-3"
+                    title="Edit"
+                    aria-label="Edit produk"
+                  >
+                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M15.232 5.232l3.536 3.536M7 17l8.485-8.485a2 2 0 112.828 2.828L9.828 19.828H7V17z" />
+                    </svg>
+                    <span className="hidden text-sm sm:inline">Edit</span>
+                  </Link>
 
-                <button onClick={() => askDelete(it)} className="inline-flex items-center gap-2 rounded-xl border border-red-300 px-3 py-1.5 text-red-600 hover:bg-red-50" title="Hapus">
-                  <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m-1 0v12a2 2 0 01-2 2h-4a2 2 0 01-2-2V7h10z" />
-                  </svg>
-                  Hapus
-                </button>
+                  {/* Delete */}
+                  <button
+                    onClick={() => askDelete(it)}
+                    className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-300 px-2.5 py-1.5 text-red-600 hover:bg-red-50 sm:px-3"
+                    title="Hapus"
+                    aria-label="Hapus produk"
+                  >
+                    <svg viewBox="0 0 24 24" className="h-4 w-4" fill="none" stroke="currentColor" strokeWidth="2">
+                      <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m-1 0v12a2 2 0 01-2 2h-4a2 2 0 01-2-2V7h10z" />
+                    </svg>
+                    <span className="hidden text-sm sm:inline">Hapus</span>
+                  </button>
+                </div>
               </div>
             </li>
           );
