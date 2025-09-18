@@ -1,5 +1,5 @@
 // app/api/products/[id]/route.ts
-import { NextResponse } from "next/server";
+import { NextResponse, type NextRequest } from "next/server";
 import { getApps, initializeApp, cert } from "firebase-admin/app";
 import { getAuth } from "firebase-admin/auth";
 import { getFirestore } from "firebase-admin/firestore";
@@ -26,7 +26,7 @@ async function deleteCloudinary(publicIds: string[]) {
   const apiKey = process.env.CLOUDINARY_API_KEY;
   const apiSecret = process.env.CLOUDINARY_API_SECRET;
   if (!cloudName || !apiKey || !apiSecret || !publicIds.length) {
-    return { ok: false, reason: "missing_cloudinary_env_or_empty" };
+    return { ok: false, reason: "missing_cloudinary_env_or_empty" as const };
   }
 
   const endpoint = `https://api.cloudinary.com/v1_1/${cloudName}/resources/image/upload`;
@@ -41,15 +41,18 @@ async function deleteCloudinary(publicIds: string[]) {
       headers: { Authorization: authHeader },
     });
     const text = await resp.text();
-    return { ok: resp.ok, status: resp.status, body: text };
+    return { ok: resp.ok, status: resp.status, body: text as string };
   } catch (e: any) {
     console.error("[api] cloudinary delete error:", e);
     return { ok: false, error: String(e) };
   }
 }
 
-export async function DELETE(req: Request, { params }: { params: { id: string } }) {
+// NOTE: Next.js new typing: context.params is a Promise
+export async function DELETE(req: NextRequest, context: { params: Promise<{ id: string }> }) {
   try {
+    const { id: productId } = await context.params;
+
     const authHeader = req.headers.get("authorization") || "";
     const m = authHeader.match(/^Bearer (.+)$/i);
     if (!m) {
@@ -68,7 +71,6 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
     }
 
     const uid = decoded.uid;
-    const productId = params.id;
     const db = getFirestore();
 
     const ref = db.doc(`users/${uid}/products/${productId}`);
@@ -84,10 +86,10 @@ export async function DELETE(req: Request, { params }: { params: { id: string } 
 
     const publicIds: string[] = Array.isArray(data?.media?.publicIds) ? data.media.publicIds.filter(Boolean) : [];
 
-    // hapus dokumen dulu (jangan blokir oleh cloudinary)
+    // delete Firestore doc first (don’t block on Cloudinary)
     await ref.delete();
 
-    // hapus cloudinary (best effort)
+    // best-effort Cloudinary cleanup
     const cloud = await deleteCloudinary(publicIds);
     if (!cloud.ok) {
       console.warn("[api] cloudinary delete failed:", cloud);
