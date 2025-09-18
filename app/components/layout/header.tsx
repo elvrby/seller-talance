@@ -177,106 +177,108 @@ export default function Header() {
       </div>
 
       {/* ========== MOBILE SLIDE-OVER ========== */}
-      {/* Overlay menutupi layar */}
-      <div
-        className={`fixed inset-0 z-[60] bg-black/50 transition-opacity duration-300 md:hidden ${menuOpen ? "opacity-100 pointer-events-auto" : "opacity-0 pointer-events-none"}`}
-        onClick={() => setMenuOpen(false)}
-        aria-hidden={!menuOpen}
-      />
-      {/* Panel dari kanan */}
-      <aside
-        className={`fixed right-0 top-0 z-[61] h-screen w-[100%] max-w-[560px] bg-white shadow-2xl md:hidden transition-transform duration-300 ${menuOpen ? "translate-x-0" : "translate-x-full"}`}
-        role="dialog"
-        aria-modal="true"
-        aria-label="Mobile menu"
-      >
-        <div className="flex items-center justify-between px-4 h-16 border-b border-slate-200">
-          <div className="flex items-center gap-2">
-            <Image src="/talance-logo.png" alt="Logo" width={28} height={28} />
-            <span className="font-medium">Menu</span>
-          </div>
-          <button onClick={() => setMenuOpen(false)} aria-label="Close menu" className="inline-flex h-10 w-10 items-center justify-center rounded-xl hover:bg-slate-100">
-            <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
-            </svg>
-          </button>
-        </div>
+      {menuOpen && (
+        <>
+          {/* Overlay (klik untuk menutup) */}
+          <div className="fixed inset-0 z-[60] bg-black/50 md:hidden" onClick={() => setMenuOpen(false)} aria-hidden />
 
-        <div className="overflow-y-auto h-[calc(100vh-64px)]">
-          {/* Profile quick section */}
-          <div className="p-4 border-b border-slate-200">
-            <div className="flex items-center gap-3">
-              <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-slate-100 ring-1 ring-slate-200">
-                <span className="text-sm font-medium text-black">GM</span>
-              </span>
-              <div>
-                <p className="text-sm font-medium text-slate-900">Seller Akun</p>
-                <p className="text-xs text-slate-500">Akun</p>
+          {/* Panel dari kanan */}
+          <aside
+            className="fixed right-0 top-0 z-[61] h-screen w-[100%] max-w-[560px] bg-white shadow-2xl md:hidden
+                 transform translate-x-0 transition-transform duration-300"
+            role="dialog"
+            aria-modal="true"
+            aria-label="Mobile menu"
+          >
+            <div className="flex items-center justify-between px-4 h-16 border-b border-slate-200">
+              <div className="flex items-center gap-2">
+                <Image src="/talance-logo.png" alt="Logo" width={28} height={28} />
+                <span className="font-medium">Menu</span>
               </div>
+              <button onClick={() => setMenuOpen(false)} aria-label="Close menu" className="inline-flex h-10 w-10 items-center justify-center rounded-xl hover:bg-slate-100">
+                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
             </div>
-            <div className="mt-3 grid grid-cols-2 gap-2">
-              <Link href="/profile" className="rounded-lg px-3 py-2 text-sm text-slate-800 hover:bg-slate-100 border text-center" onClick={() => setMenuOpen(false)}>
-                Profile
-              </Link>
-              <Link href="/settings" className="rounded-lg px-3 py-2 text-sm text-slate-800 hover:bg-slate-100 border text-center" onClick={() => setMenuOpen(false)}>
-                Settings
-              </Link>
-            </div>
-          </div>
 
-          {/* Quick actions */}
-          <nav className="p-4 border-b border-slate-200">
-            <ul className="space-y-2">
-              <li>
-                <Link href="/notifications" className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-slate-100 text-slate-900" onClick={() => setMenuOpen(false)}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.4-1.4C18.2 14.2 18 13.3 18 12V9a6 6 0 10-12 0v3c0 1.3-.2 2.2-.6 2.6L4 17h5m6 0v1a3 3 0 11-6 0v-1" />
-                  </svg>
-                  <span>Notifikasi</span>
-                </Link>
-              </li>
-              <li>
-                <Link href="/inbox" className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-slate-100 text-slate-900" onClick={() => setMenuOpen(false)}>
-                  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M3 5h18M3 19h18M5 5l7 7 7-7" />
-                  </svg>
-                  <span>Inbox</span>
-                </Link>
-              </li>
-            </ul>
-          </nav>
+            <div className="overflow-y-auto h-[calc(100vh-64px)]">
+              {/* Profile quick section */}
+              <div className="p-4 border-b border-slate-200">
+                <div className="flex items-center gap-3">
+                  <span className="inline-flex h-10 w-10 items-center justify-center overflow-hidden rounded-full bg-slate-100 ring-1 ring-slate-200">
+                    <span className="text-sm font-medium text-black">GM</span>
+                  </span>
+                  <div>
+                    <p className="text-sm font-medium text-slate-900">Seller Akun</p>
+                    <p className="text-xs text-slate-500">Akun</p>
+                  </div>
+                </div>
+                <div className="mt-3 grid grid-cols-2 gap-2">
+                  <Link href="/profile" className="rounded-lg px-3 py-2 text-sm text-slate-800 hover:bg-slate-100 border text-center" onClick={() => setMenuOpen(false)}>
+                    Profile
+                  </Link>
+                  <Link href="/settings" className="rounded-lg px-3 py-2 text-sm text-slate-800 hover:bg-slate-100 border text-center" onClick={() => setMenuOpen(false)}>
+                    Settings
+                  </Link>
+                </div>
+              </div>
 
-          {/* Groups (Pesanan & Produk) */}
-          <div className="p-4">
-            {groups.map((group) => (
-              <div key={group.title} className="mb-4">
-                <div className="px-1 pb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{group.title}</div>
-                <ul className="space-y-1">
-                  {group.items.map((item) => (
-                    <li key={item.href}>
-                      <Link href={item.href} className="block rounded-lg px-3 py-2 hover:bg-slate-100 text-slate-900" onClick={() => setMenuOpen(false)}>
-                        {item.label}
-                      </Link>
-                    </li>
-                  ))}
+              {/* Quick actions */}
+              <nav className="p-4 border-b border-slate-200">
+                <ul className="space-y-2">
+                  <li>
+                    <Link href="/notifications" className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-slate-100 text-slate-900" onClick={() => setMenuOpen(false)}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.4-1.4C18.2 14.2 18 13.3 18 12V9a6 6 0 10-12 0v3c0 1.3-.2 2.2-.6 2.6L4 17h5m6 0v1a3 3 0 11-6 0v-1" />
+                      </svg>
+                      <span>Notifikasi</span>
+                    </Link>
+                  </li>
+                  <li>
+                    <Link href="/inbox" className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-slate-100 text-slate-900" onClick={() => setMenuOpen(false)}>
+                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 5h18M3 19h18M5 5l7 7 7-7" />
+                      </svg>
+                      <span>Inbox</span>
+                    </Link>
+                  </li>
                 </ul>
-              </div>
-            ))}
-          </div>
+              </nav>
 
-          <div className="w-full p-2">
-            <button
-              className="w-full col-span-2 rounded-lg px-3 py-2 text-sm text-white bg-red-500 hover:bg-red-600"
-              onClick={() => {
-                // TODO: logout
-                setMenuOpen(false);
-              }}
-            >
-              Log out
-            </button>
-          </div>
-        </div>
-      </aside>
+              {/* Groups (Pesanan & Produk) */}
+              <div className="p-4">
+                {groups.map((group) => (
+                  <div key={group.title} className="mb-4">
+                    <div className="px-1 pb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{group.title}</div>
+                    <ul className="space-y-1">
+                      {group.items.map((item) => (
+                        <li key={item.href}>
+                          <Link href={item.href} className="block rounded-lg px-3 py-2 hover:bg-slate-100 text-slate-900" onClick={() => setMenuOpen(false)}>
+                            {item.label}
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                ))}
+              </div>
+
+              <div className="w-full p-2">
+                <button
+                  className="w-full col-span-2 rounded-lg px-3 py-2 text-sm text-white bg-red-500 hover:bg-red-600"
+                  onClick={() => {
+                    // TODO: logout
+                    setMenuOpen(false);
+                  }}
+                >
+                  Log out
+                </button>
+              </div>
+            </div>
+          </aside>
+        </>
+      )}
     </header>
   );
 }
