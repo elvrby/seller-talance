@@ -73,8 +73,8 @@ export default function Step3Media({
   const [previewIndex, setPreviewIndex] = useState<number>(0);
 
   // refs
-  const inputImgRef = useRef<HTMLInputElement>(null);
-  const inputImgSingleRef = useRef<HTMLInputElement>(null);
+  const inputImgRef = useRef<HTMLInputElement>(null); // MULTI picker (hidden) — dipicu saat klik slot kosong
+  const inputImgSingleRef = useRef<HTMLInputElement>(null); // single (tetap ada)
   const inputPdfRef = useRef<HTMLInputElement>(null);
   const inputVideoRef = useRef<HTMLInputElement>(null);
 
@@ -142,6 +142,7 @@ export default function Step3Media({
     }
   }, [previewOpen, previewList, previewIndex]);
 
+  // Tutup/navigasi dengan keyboard
   useEffect(() => {
     if (!previewOpen) return;
     const onKey = (e: KeyboardEvent) => {
@@ -387,7 +388,7 @@ export default function Step3Media({
     const draggable = slot.kind !== "empty";
     const handleClick = () => {
       if (slot.kind === "empty") {
-        inputImgRef.current?.click();
+        inputImgRef.current?.click(); // tambah gambar (multi)
       } else {
         const i = slotToPreviewIndex(idx);
         setPreviewIndex(i);
@@ -515,7 +516,7 @@ export default function Step3Media({
           {combined.map((slot, i) => renderSlot(slot, i))}
         </div>
 
-        {/* input MULTI tersembunyi */}
+        {/* input MULTI tersembunyi yang dipicu saat klik slot kosong */}
         <input
           ref={inputImgRef}
           type="file"
