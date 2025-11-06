@@ -2,7 +2,7 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-import { getAdmin } from "@/libs/firebase/admin";
+
 import bcrypt from "bcryptjs";
 
 const MAX_ATTEMPTS = 5;
@@ -17,7 +17,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { adminApp, adminAuth } = getAdmin();
+    const { adminApp, adminAuth } = require("@lib/firebase/admin");
     const db = adminApp.firestore();
 
     // Ambil dokumen OTP terbaru untuk email tsb yang belum used
