@@ -1,3 +1,4 @@
+// hooks/use-auth-guard.ts
 "use client";
 
 import { useEffect, useRef, useState } from "react";
@@ -8,20 +9,36 @@ import { doc, getDoc } from "firebase/firestore";
 import { db } from "@/libs/firebase/config";
 
 type Options = {
-  enforceVerified?: boolean; // blokir user belum verif → /account/verify-email
-  enforceFreelanceComplete?: boolean; // paksa isi freelance form dulu
-  freelanceFormPath?: string; // default: "/account/freelance-form"
-  redirectIfNoUser?: string; // default: "/account/sign-in"
+  enforceVerified?: boolean;
+  enforceFreelanceComplete?: boolean;
+  enforceFormAfterVerified?: boolean;
+  freelanceFormPath?: string;
+  redirectIfNoUser?: string;
+  exemptPaths?: string[];
 };
 
-export function useAuthGuard(redirectIfNoUser: string = "/account/sign-in", options: Options = { enforceVerified: false, enforceFreelanceComplete: false }) {
+export function useAuthGuard(
+  redirectIfNoUser: string = "/account/sign-in",
+  options: Options = { enforceVerified: false, enforceFreelanceComplete: false }
+) {
   const router = useRouter();
   const pathname = usePathname() || "/";
   const [user, setUser] = useState<User | null>(null);
   const [checking, setChecking] = useState(true);
   const startedOTPRef = useRef(false);
 
-  const freelanceFormPath = options.freelanceFormPath || "/account/freelance-form";
+  const freelanceFormPath =
+    options.freelanceFormPath || "/account/freelance-form";
+  const enforceFormAfterVerified = options.enforceFormAfterVerified ?? true;
+
+  const EXEMPT = new Set<string>([
+    "/account/sign-up",
+    "/account/sign-in",
+    "/account/verify-email",
+    "/account/reset-password",
+    freelanceFormPath,
+    ...(options.exemptPaths || []),
+  ]);
 
   useEffect(() => {
     const unsub = onAuthStateChanged(auth, async (u) => {
@@ -33,7 +50,6 @@ export function useAuthGuard(redirectIfNoUser: string = "/account/sign-in", opti
         return;
       }
 
-      // Segarkan status auth (emailVerified)
       try {
         await u.reload();
       } catch {}
@@ -41,8 +57,12 @@ export function useAuthGuard(redirectIfNoUser: string = "/account/sign-in", opti
         await u.getIdToken(true);
       } catch {}
 
-      // 1) Wajib verified?
-      if (options.enforceVerified && u.email && !u.emailVerified) {
+      if (
+        options.enforceVerified &&
+        u.email &&
+        !u.emailVerified &&
+        pathname !== "/account/verify-email"
+      ) {
         if (!startedOTPRef.current) {
           startedOTPRef.current = true;
           try {
@@ -59,22 +79,25 @@ export function useAuthGuard(redirectIfNoUser: string = "/account/sign-in", opti
         return;
       }
 
-      // 2) Wajib selesai form freelancer?
-      if (options.enforceFreelanceComplete && pathname !== freelanceFormPath) {
+      const shouldCheckForm =
+        options.enforceFreelanceComplete &&
+        !EXEMPT.has(pathname) &&
+        (!enforceFormAfterVerified || !u.email || u.emailVerified);
+
+      if (shouldCheckForm) {
         try {
           const snap = await getDoc(doc(db, "users", u.uid));
           const data = snap.exists() ? snap.data() : null;
-          const done = Boolean(data?.onboarding?.freelanceFormCompleted);
+          const done = Boolean(
+            (data as any)?.onboarding?.freelanceFormCompleted
+          );
           if (!done) {
             router.replace(freelanceFormPath);
             setChecking(false);
             return;
           }
         } catch {
-          // kalau gagal baca doc, tetap arahkan ke form
-          router.replace(freelanceFormPath);
-          setChecking(false);
-          return;
+          // ignore read error
         }
       }
 
@@ -82,7 +105,16 @@ export function useAuthGuard(redirectIfNoUser: string = "/account/sign-in", opti
     });
 
     return () => unsub();
-  }, [router, pathname, redirectIfNoUser, options.enforceVerified, options.enforceFreelanceComplete, options.redirectIfNoUser, freelanceFormPath]);
+  }, [
+    router,
+    pathname,
+    redirectIfNoUser,
+    options.enforceVerified,
+    options.enforceFreelanceComplete,
+    options.redirectIfNoUser,
+    freelanceFormPath,
+    enforceFormAfterVerified,
+  ]);
 
   return { user, checking };
 }

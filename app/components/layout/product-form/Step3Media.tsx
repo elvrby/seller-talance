@@ -2,19 +2,29 @@
 "use client";
 
 import { useEffect, useMemo, useRef, useState } from "react";
-import { ensureBucketId, addPendingFiles, listPendingFiles, removePendingFile, addPendingDelete, fileToDataURL, PendingFile } from "@/app/lib/deferredMedia";
+import {
+  ensureBucketId,
+  addPendingFiles,
+  listPendingFiles,
+  removePendingFile,
+  addPendingDelete,
+  fileToDataURL,
+  PendingFile,
+} from "@/app/lib/deferredMedia";
 
 export type UploadedMedia = {
   images: string[]; // Cloudinary URLs (existing)
-  coverUrl?: string; // optional cover
-  pdfUrl?: string; // optional PDF
-  videoUrl?: string; // optional VIDEO (akan diupload saat submit)
+  coverUrl?: string;
+  pdfUrl?: string;
+  videoUrl?: string;
 };
 
 type Props = {
   value: UploadedMedia;
   onChange: (m: UploadedMedia) => void;
   bucketKey?: string; // unik per draft; default: "add-product"
+  /** callback untuk memberi tahu parent apakah minimal 1 gambar sudah ada (existing/pending) */
+  onValidityChange?: (hasAtLeastOneImage: boolean) => void;
 };
 
 const MAX_W = 1000;
@@ -42,21 +52,29 @@ function checkImageSize(file: File): Promise<void> {
   });
 }
 
-type SlotItem = { kind: "existing"; url: string } | { kind: "pending"; id: string; src: string } | { kind: "empty" };
+type SlotItem =
+  | { kind: "existing"; url: string }
+  | { kind: "pending"; id: string; src: string }
+  | { kind: "empty" };
 
-export default function Step3Media({ value, onChange, bucketKey = "add-product" }: Props) {
+export default function Step3Media({
+  value,
+  onChange,
+  bucketKey = "add-product",
+  onValidityChange,
+}: Props) {
   const [bucketId, setBucketId] = useState<string>("");
   const [pending, setPending] = useState<PendingFile[]>([]);
   const [err, setErr] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
 
-  // PREVIEW (multi) state
+  // PREVIEW state
   const [previewOpen, setPreviewOpen] = useState(false);
   const [previewIndex, setPreviewIndex] = useState<number>(0);
 
   // refs
-  const inputImgRef = useRef<HTMLInputElement>(null); // MULTI picker
-  const inputImgSingleRef = useRef<HTMLInputElement>(null); // single (tetap ada)
+  const inputImgRef = useRef<HTMLInputElement>(null);
+  const inputImgSingleRef = useRef<HTMLInputElement>(null);
   const inputPdfRef = useRef<HTMLInputElement>(null);
   const inputVideoRef = useRef<HTMLInputElement>(null);
 
@@ -97,7 +115,13 @@ export default function Step3Media({ value, onChange, bucketKey = "add-product" 
     return items;
   }, [existingOrdered, pending]);
 
-  // Daftar sumber untuk preview (urutan sama dengan slot non-empty)
+  // Notifikasi validasi ke parent (≥1 gambar: existing atau pending)
+  useEffect(() => {
+    const has = existingOrdered.length + pending.length > 0;
+    onValidityChange?.(has);
+  }, [existingOrdered.length, pending.length, onValidityChange]);
+
+  // Daftar untuk preview
   const previewList = useMemo(() => {
     const arr: string[] = [];
     for (const it of combined) {
@@ -107,7 +131,6 @@ export default function Step3Media({ value, onChange, bucketKey = "add-product" 
     return arr;
   }, [combined]);
 
-  // Kalau sedang preview dan list berubah (hapus gambar, dsb), jaga index tetap valid
   useEffect(() => {
     if (!previewOpen) return;
     if (previewList.length === 0) {
@@ -119,13 +142,16 @@ export default function Step3Media({ value, onChange, bucketKey = "add-product" 
     }
   }, [previewOpen, previewList, previewIndex]);
 
-  // Tutup/nafigasi dengan keyboard
   useEffect(() => {
     if (!previewOpen) return;
     const onKey = (e: KeyboardEvent) => {
       if (e.key === "Escape") setPreviewOpen(false);
-      if (e.key === "ArrowRight") setPreviewIndex((i) => (i + 1) % previewList.length);
-      if (e.key === "ArrowLeft") setPreviewIndex((i) => (i - 1 + previewList.length) % previewList.length);
+      if (e.key === "ArrowRight")
+        setPreviewIndex((i) => (i + 1) % previewList.length);
+      if (e.key === "ArrowLeft")
+        setPreviewIndex(
+          (i) => (i - 1 + previewList.length) % previewList.length
+        );
     };
     document.addEventListener("keydown", onKey);
     return () => document.removeEventListener("keydown", onKey);
@@ -149,7 +175,8 @@ export default function Step3Media({ value, onChange, bucketKey = "add-product" 
       setBusy(true);
       const newPendings: PendingFile[] = [];
       for (const f of accepted) {
-        if (!IMG_TYPES.includes(f.type)) throw new Error("Tipe file harus PNG/JPG/JPEG");
+        if (!IMG_TYPES.includes(f.type))
+          throw new Error("Tipe file harus PNG/JPG/JPEG");
         await checkImageSize(f);
         const dataUrl = await fileToDataURL(f);
         newPendings.push({
@@ -186,7 +213,8 @@ export default function Step3Media({ value, onChange, bucketKey = "add-product" 
         setErr(`Maksimal ${MAX_IMAGES} gambar.`);
         return;
       }
-      if (!IMG_TYPES.includes(file.type)) throw new Error("Tipe file harus PNG/JPG/JPEG");
+      if (!IMG_TYPES.includes(file.type))
+        throw new Error("Tipe file harus PNG/JPG/JPEG");
       await checkImageSize(file);
       const dataUrl = await fileToDataURL(file);
 
@@ -224,7 +252,7 @@ export default function Step3Media({ value, onChange, bucketKey = "add-product" 
     addPendingFiles(bucketId, next);
   };
 
-  // drag&drop
+  // drag & drop
   const [dragIdx, setDragIdx] = useState<number | null>(null);
   const onDragStart = (i: number) => () => {
     if (combined[i].kind === "empty") return;
@@ -302,7 +330,8 @@ export default function Step3Media({ value, onChange, bucketKey = "add-product" 
     if (it.kind === "existing") {
       addPendingDelete(bucketId, it.url);
       const nextImgs = value.images.filter((u) => u !== it.url);
-      const nextCover = value.coverUrl === it.url ? nextImgs[0] : value.coverUrl;
+      const nextCover =
+        value.coverUrl === it.url ? nextImgs[0] : value.coverUrl;
       onChange({ ...value, images: nextImgs, coverUrl: nextCover });
     } else if (it.kind === "pending") {
       removePendingFile(bucketId, it.id);
@@ -331,7 +360,8 @@ export default function Step3Media({ value, onChange, bucketKey = "add-product" 
     setErr(null);
     if (!file) return;
     try {
-      if (!VIDEO_TYPES.includes(file.type)) throw new Error("Video harus MP4 atau WEBM");
+      if (!VIDEO_TYPES.includes(file.type))
+        throw new Error("Video harus MP4 atau WEBM");
       if (file.size > VIDEO_MAX_SIZE) throw new Error("Ukuran video maks 10MB");
       const dataUrl = await fileToDataURL(file);
       onChange({ ...value, videoUrl: dataUrl });
@@ -341,7 +371,6 @@ export default function Step3Media({ value, onChange, bucketKey = "add-product" 
     }
   };
 
-  // Helper: map index slot -> index di previewList (melewati slot kosong)
   const slotToPreviewIndex = (slotIndex: number) => {
     let count = 0;
     for (let k = 0; k < combined.length; k++) {
@@ -358,9 +387,8 @@ export default function Step3Media({ value, onChange, bucketKey = "add-product" 
     const draggable = slot.kind !== "empty";
     const handleClick = () => {
       if (slot.kind === "empty") {
-        inputImgRef.current?.click(); // tambah gambar
+        inputImgRef.current?.click();
       } else {
-        // buka preview multi pada index sesuai slot
         const i = slotToPreviewIndex(idx);
         setPreviewIndex(i);
         setPreviewOpen(true);
@@ -370,9 +398,19 @@ export default function Step3Media({ value, onChange, bucketKey = "add-product" 
     return (
       <div
         key={idx}
+        role="button"
+        tabIndex={0}
+        onKeyDown={(e) => {
+          if (e.key === "Enter" || e.key === " ") {
+            e.preventDefault();
+            handleClick();
+          }
+        }}
         className={[
           "relative aspect-square w-full overflow-hidden rounded-xl border",
-          slot.kind === "empty" ? "border-dashed border-gray-300 bg-gray-50" : "border-gray-200 bg-white",
+          slot.kind === "empty"
+            ? "border-dashed border-gray-300 bg-gray-50"
+            : "border-gray-200 bg-white",
           "cursor-pointer",
         ].join(" ")}
         draggable={draggable}
@@ -383,42 +421,76 @@ export default function Step3Media({ value, onChange, bucketKey = "add-product" 
         title={idx === 0 ? "Cover (gambar utama)" : "Gambar"}
       >
         {slot.kind === "empty" ? (
-          <div className="absolute inset-0 flex items-center justify-center text-[11px] text-gray-500">+ Tambah gambar</div>
+          <div className="absolute inset-0 flex items-center justify-center text-[11px] text-gray-500">
+            + Tambah gambar
+          </div>
         ) : slot.kind === "existing" ? (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={slot.url} alt="" className="h-full w-full object-cover" />
-            {idx === 0 && <span className="absolute left-1.5 top-1.5 rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] text-white">Cover</span>}
+            {idx === 0 && (
+              <span className="absolute left-1.5 top-1.5 rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] text-white">
+                Cover
+              </span>
+            )}
             <button
               type="button"
               className="absolute right-1.5 top-1.5 rounded-full bg-white/90 p-1 text-red-600 shadow hover:bg-white"
               onClick={(e) => {
-                e.stopPropagation(); // jangan buka preview
+                e.stopPropagation();
                 removeSlotItem(idx);
               }}
               title="Hapus"
             >
-              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m-1 0v12a2 2 0 01-2 2h-4a2 2 0 01-2-2V7h10z" />
+              <svg
+                viewBox="0 0 24 24"
+                className="h-3.5 w-3.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 7h12M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m-1 0v12a2 2 0 01-2 2h-4a2 2 0 01-2-2V7h10z"
+                />
               </svg>
             </button>
           </>
         ) : (
           <>
             {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={slot.src} alt="pending" className="h-full w-full object-cover opacity-90" />
-            {idx === 0 && <span className="absolute left-1.5 top-1.5 rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] text-white">Cover (akan jadi utama)</span>}
+            <img
+              src={slot.src}
+              alt="pending"
+              className="h-full w-full object-cover opacity-90"
+            />
+            {idx === 0 && (
+              <span className="absolute left-1.5 top-1.5 rounded-md bg-black/70 px-1.5 py-0.5 text-[10px] text-white">
+                Cover (akan jadi utama)
+              </span>
+            )}
             <button
               type="button"
               className="absolute right-1.5 top-1.5 rounded-full bg-white/90 p-1 text-red-600 shadow hover:bg-white"
               onClick={(e) => {
-                e.stopPropagation(); // jangan buka preview
+                e.stopPropagation();
                 removeSlotItem(idx);
               }}
               title="Hapus"
             >
-              <svg viewBox="0 0 24 24" className="h-3.5 w-3.5" fill="none" stroke="currentColor" strokeWidth="2">
-                <path strokeLinecap="round" strokeLinejoin="round" d="M6 7h12M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m-1 0v12a2 2 0 01-2 2h-4a2 2 0 01-2-2V7h10z" />
+              <svg
+                viewBox="0 0 24 24"
+                className="h-3.5 w-3.5"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  d="M6 7h12M9 7V5a2 2 0 012-2h2a2 2 0 012 2v2m-1 0v12a2 2 0 01-2 2h-4a2 2 0 01-2-2V7h10z"
+                />
               </svg>
             </button>
           </>
@@ -433,57 +505,120 @@ export default function Step3Media({ value, onChange, bucketKey = "add-product" 
       <div>
         <div className="mb-2 flex items-center justify-between">
           <label className="block text-sm font-medium">
-            Upload Foto (PNG/JPG/JPEG, maks {MAX_W}x{MAX_H}, maks {MAX_IMAGES} gambar)
+            Upload Foto (PNG/JPG/JPEG, maks {MAX_W}x{MAX_H}, maks {MAX_IMAGES}{" "}
+            gambar)
           </label>
         </div>
 
         {/* GRID slot — gap kecil */}
-        <div className="grid grid-cols-3 gap-1">{combined.map((slot, i) => renderSlot(slot, i))}</div>
+        <div className="grid grid-cols-3 gap-1">
+          {combined.map((slot, i) => renderSlot(slot, i))}
+        </div>
+
+        {/* input MULTI tersembunyi */}
+        <input
+          ref={inputImgRef}
+          type="file"
+          accept={IMG_TYPES.join(",")}
+          multiple
+          onChange={onPickImages}
+          className="hidden"
+        />
 
         {busy && <p className="mt-1 text-sm text-gray-500">Memproses…</p>}
         {err && <p className="mt-2 text-sm text-red-600">{err}</p>}
 
+        {/* Validasi info */}
+        {existingOrdered.length + pending.length === 0 && (
+          <p className="mt-2 text-xs text-red-600">
+            Minimal unggah 1 gambar untuk melanjutkan.
+          </p>
+        )}
+
         {/* input single tetap ada */}
-        <input ref={inputImgSingleRef} type="file" accept={IMG_TYPES.join(",")} onChange={onPickSingleImage} className="hidden" />
+        <input
+          ref={inputImgSingleRef}
+          type="file"
+          accept={IMG_TYPES.join(",")}
+          onChange={onPickSingleImage}
+          className="hidden"
+        />
       </div>
 
       {/* PDF */}
       <div>
-        <label className="block text-sm font-medium">Upload Dokumen (PDF)</label>
-        <input ref={inputPdfRef} type="file" accept={PDF_TYPE} onChange={onPickPdf} className="mt-2 block w-full text-sm" />
-        {value.pdfUrl && <div className="mt-2 text-sm">Dokumen siap diupload saat menyimpan.</div>}
+        <label className="block text-sm font-medium">
+          Upload Dokumen (PDF)
+        </label>
+        <input
+          ref={inputPdfRef}
+          type="file"
+          accept={PDF_TYPE}
+          onChange={onPickPdf}
+          className="mt-2 block w-full text-sm"
+        />
+        {value.pdfUrl && (
+          <div className="mt-2 text-sm">
+            Dokumen siap diupload saat menyimpan.
+          </div>
+        )}
       </div>
 
       {/* VIDEO */}
       <div>
-        <label className="block text-sm font-medium">Upload Video (MP4/WEBM, minimal 1, maks 10MB)</label>
+        <label className="block text-sm font-medium">
+          Upload Video (MP4/WEBM, minimal 1, maks 10MB)
+        </label>
         <div className="mt-2 flex items-center gap-3">
-          <input ref={inputVideoRef} type="file" accept={VIDEO_TYPES.join(",")} onChange={onPickVideo} className="block w-full text-sm" />
+          <input
+            ref={inputVideoRef}
+            type="file"
+            accept={VIDEO_TYPES.join(",")}
+            onChange={onPickVideo}
+            className="block w-full text-sm"
+          />
         </div>
         {value.videoUrl ? (
           <div className="mt-3 overflow-hidden rounded-xl border">
             {/* eslint-disable-next-line jsx-a11y/media-has-caption */}
-            <video src={value.videoUrl} controls className="h-40 w-full object-contain" />
+            <video
+              src={value.videoUrl}
+              controls
+              className="h-40 w-full object-contain"
+            />
             <div className="flex items-center justify-end p-2">
-              <button type="button" onClick={() => onChange({ ...value, videoUrl: undefined })} className="text-sm text-red-600">
+              <button
+                type="button"
+                onClick={() => onChange({ ...value, videoUrl: undefined })}
+                className="text-sm text-red-600"
+              >
                 Hapus Video
               </button>
             </div>
           </div>
         ) : (
-          <p className="mt-2 text-xs text-gray-500">Belum ada video. Unggah minimal 1 video agar produk lebih menarik. (Batas 10MB)</p>
+          <p className="mt-2 text-xs text-gray-500">
+            Belum ada video. Unggah minimal 1 video agar produk lebih menarik.
+            (Batas 10MB)
+          </p>
         )}
       </div>
 
       {/* PREVIEW MODAL (multi) */}
       {previewOpen && previewList.length > 0 && (
         <div className="fixed inset-0 z-[1000]">
-          <div className="absolute inset-0 bg-black/70" onClick={() => setPreviewOpen(false)} />
+          <div
+            className="absolute inset-0 bg-black/70"
+            onClick={() => setPreviewOpen(false)}
+          />
           <div className="absolute inset-0 flex items-center justify-center p-4">
             <div className="relative max-h-[90vh] w-[90vw] max-w-4xl overflow-hidden rounded-xl bg-white">
-              {/* gambar aktif */}
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={previewList[previewIndex]} alt={`preview-${previewIndex + 1}`} className="max-h-[85vh] w-full object-contain" />
+              <img
+                src={previewList[previewIndex]}
+                alt={`preview-${previewIndex + 1}`}
+                className="max-h-[85vh] w-full object-contain"
+              />
 
               {/* Close */}
               <button
@@ -493,8 +628,18 @@ export default function Step3Media({ value, onChange, bucketKey = "add-product" 
                 aria-label="Tutup preview"
                 title="Tutup (Esc)"
               >
-                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+                <svg
+                  viewBox="0 0 24 24"
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
 
@@ -504,14 +649,26 @@ export default function Step3Media({ value, onChange, bucketKey = "add-product" 
                   type="button"
                   onClick={(e) => {
                     e.stopPropagation();
-                    setPreviewIndex((i) => (i - 1 + previewList.length) % previewList.length);
+                    setPreviewIndex(
+                      (i) => (i - 1 + previewList.length) % previewList.length
+                    );
                   }}
                   className="absolute left-2 top-1/2 -translate-y-1/2 rounded-full bg-black/70 p-2 text-white hover:bg-black"
                   aria-label="Sebelumnya"
                   title="Sebelumnya (←)"
                 >
-                  <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M15 19l-7-7 7-7" />
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="h-6 w-6"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M15 19l-7-7 7-7"
+                    />
                   </svg>
                 </button>
               )}
@@ -528,8 +685,18 @@ export default function Step3Media({ value, onChange, bucketKey = "add-product" 
                   aria-label="Berikutnya"
                   title="Berikutnya (→)"
                 >
-                  <svg viewBox="0 0 24 24" className="h-6 w-6" fill="none" stroke="currentColor" strokeWidth="2">
-                    <path strokeLinecap="round" strokeLinejoin="round" d="M9 5l7 7-7 7" />
+                  <svg
+                    viewBox="0 0 24 24"
+                    className="h-6 w-6"
+                    fill="none"
+                    stroke="currentColor"
+                    strokeWidth="2"
+                  >
+                    <path
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                      d="M9 5l7 7-7 7"
+                    />
                   </svg>
                 </button>
               )}

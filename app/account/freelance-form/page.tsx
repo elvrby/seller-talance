@@ -5,7 +5,13 @@ import React, { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { useAuthGuard } from "@/app/hooks/use-auth-guard";
 import { db } from "@/libs/firebase/config";
-import { doc, getDoc, onSnapshot, runTransaction, serverTimestamp } from "firebase/firestore";
+import {
+  doc,
+  getDoc,
+  onSnapshot,
+  runTransaction,
+  serverTimestamp,
+} from "firebase/firestore";
 
 // ====== Kategori & sub-jasa ======
 const SERVICE_GROUPS: Record<string, string[]> = {
@@ -26,7 +32,7 @@ const MAX_PER_CATEGORY = 3; // maksimal sub-jasa per kategori
 export default function FreelanceFormPage() {
   // Wajib login + verified; form ini target onboarding,
   // jadi jangan enforceFreelanceComplete di sini agar tidak loop.
-  const { user, checking } = useAuthGuard("/account/sign-in", {
+  const { user, checking } = useAuthGuard("/account/verify-email", {
     enforceVerified: true,
     enforceFreelanceComplete: false,
   });
@@ -45,9 +51,12 @@ export default function FreelanceFormPage() {
   const [specialties, setSpecialties] = useState<string[]>([]);
 
   // ===== Pilihan jasa: kategori & sub-jasa =====
-  const emptyByCat = Object.fromEntries(ALL_CATEGORIES.map((c) => [c, [] as string[]])) as Record<ServiceCategory, string[]>;
+  const emptyByCat = Object.fromEntries(
+    ALL_CATEGORIES.map((c) => [c, [] as string[]])
+  ) as Record<ServiceCategory, string[]>;
   const [selectedCats, setSelectedCats] = useState<ServiceCategory[]>([]);
-  const [servicesByCategory, setServicesByCategory] = useState<Record<ServiceCategory, string[]>>(emptyByCat);
+  const [servicesByCategory, setServicesByCategory] =
+    useState<Record<ServiceCategory, string[]>>(emptyByCat);
   const [pickerOpen, setPickerOpen] = useState(false);
 
   // Prefill & auto-redirect jika sudah complete
@@ -73,22 +82,33 @@ export default function FreelanceFormPage() {
 
       // Restore kategori
       if (Array.isArray(data?.freelanceProfile?.serviceCategories)) {
-        const cats = (data.freelanceProfile.serviceCategories as string[]).filter((c) => ALL_CATEGORIES.includes(c as ServiceCategory)).slice(0, MAX_CATEGORIES) as ServiceCategory[];
+        const cats = (data.freelanceProfile.serviceCategories as string[])
+          .filter((c) => ALL_CATEGORIES.includes(c as ServiceCategory))
+          .slice(0, MAX_CATEGORIES) as ServiceCategory[];
         setSelectedCats(cats);
       }
 
       // Restore sub-jasa per kategori
       const byCat = { ...emptyByCat };
-      if (data?.freelanceProfile?.servicesByCategory && typeof data.freelanceProfile.servicesByCategory === "object") {
+      if (
+        data?.freelanceProfile?.servicesByCategory &&
+        typeof data.freelanceProfile.servicesByCategory === "object"
+      ) {
         for (const cat of ALL_CATEGORIES) {
           const arr = data.freelanceProfile.servicesByCategory[cat];
-          byCat[cat] = Array.isArray(arr) ? arr.filter((s: string) => SERVICE_GROUPS[cat].includes(s)).slice(0, MAX_PER_CATEGORY) : [];
+          byCat[cat] = Array.isArray(arr)
+            ? arr
+                .filter((s: string) => SERVICE_GROUPS[cat].includes(s))
+                .slice(0, MAX_PER_CATEGORY)
+            : [];
         }
       } else if (Array.isArray(data?.freelanceProfile?.services)) {
         // kompat: dari flat → kelompokkan
         const flat = data.freelanceProfile.services as string[];
         for (const cat of ALL_CATEGORIES) {
-          byCat[cat] = flat.filter((s) => SERVICE_GROUPS[cat].includes(s)).slice(0, MAX_PER_CATEGORY);
+          byCat[cat] = flat
+            .filter((s) => SERVICE_GROUPS[cat].includes(s))
+            .slice(0, MAX_PER_CATEGORY);
         }
       }
       setServicesByCategory(byCat);
@@ -100,13 +120,20 @@ export default function FreelanceFormPage() {
 
   // ===== Validasi username =====
   const normUsername = useMemo(() => username.trim().toLowerCase(), [username]);
-  const usernameValidSyntax = useMemo(() => /^[a-z0-9._]{3,20}$/.test(normUsername), [normUsername]);
+  const usernameValidSyntax = useMemo(
+    () => /^[a-z0-9._]{3,20}$/.test(normUsername),
+    [normUsername]
+  );
 
   // Debounce cek ketersediaan
   useEffect(() => {
     if (!usernameValidSyntax) {
       setAvailable(null);
-      setUsernameErr(username.length === 0 ? null : "Gunakan 3–20 karakter: huruf, angka, underscore (_) atau titik (.)");
+      setUsernameErr(
+        username.length === 0
+          ? null
+          : "Gunakan 3–20 karakter: huruf, angka, underscore (_) atau titik (.)"
+      );
       return;
     }
     let alive = true;
@@ -156,7 +183,10 @@ export default function FreelanceFormPage() {
   };
 
   // ===== Category picker =====
-  const availableCats = useMemo(() => ALL_CATEGORIES.filter((c) => !selectedCats.includes(c)), [selectedCats]);
+  const availableCats = useMemo(
+    () => ALL_CATEGORIES.filter((c) => !selectedCats.includes(c)),
+    [selectedCats]
+  );
   const addCategory = (c: ServiceCategory) => {
     if (selectedCats.length >= MAX_CATEGORIES) return;
     if (selectedCats.includes(c)) return;
@@ -182,7 +212,10 @@ export default function FreelanceFormPage() {
   };
 
   // Flat services untuk disimpan juga (memudahkan query)
-  const flatServices = useMemo(() => selectedCats.flatMap((c) => servicesByCategory[c] ?? []), [selectedCats, servicesByCategory]);
+  const flatServices = useMemo(
+    () => selectedCats.flatMap((c) => servicesByCategory[c] ?? []),
+    [selectedCats, servicesByCategory]
+  );
 
   const canSubmit =
     !!user &&
@@ -248,15 +281,23 @@ export default function FreelanceFormPage() {
   };
 
   if (checking || !user || loading) {
-    return <main className="grid min-h-[calc(100vh-64px)] place-items-center text-sm text-gray-500">Memuat formulir…</main>;
+    return (
+      <main className="grid min-h-[calc(100vh-64px)] place-items-center text-sm text-gray-500">
+        Memuat formulir…
+      </main>
+    );
   }
 
   return (
     <main className="min-h-[calc(100vh-64px)] bg-white">
       <div className="mx-auto max-w-xl px-4 py-8">
-        <h1 className="text-2xl font-semibold text-gray-900">Lengkapi Profil Freelancer</h1>
+        <h1 className="text-2xl font-semibold text-gray-900">
+          Lengkapi Profil Freelancer
+        </h1>
         <p className="mt-1 text-sm text-gray-500">
-          Buat username unik, pilih keahlian (maks {MAX_SPECIALTIES}) dan kategori jasa (maks {MAX_CATEGORIES}). Untuk tiap kategori, pilih sub-jasa (maks {MAX_PER_CATEGORY}).
+          Buat username unik, pilih keahlian (maks {MAX_SPECIALTIES}) dan
+          kategori jasa (maks {MAX_CATEGORIES}). Untuk tiap kategori, pilih
+          sub-jasa (maks {MAX_PER_CATEGORY}).
         </p>
 
         <form onSubmit={onSubmit} className="mt-6 space-y-6">
@@ -282,18 +323,30 @@ export default function FreelanceFormPage() {
                 <span className="text-xs text-red-600">dipakai</span>
               ) : null}
             </div>
-            {usernameErr && <p className="mt-1 text-sm text-red-600">{usernameErr}</p>}
+            {usernameErr && (
+              <p className="mt-1 text-sm text-red-600">{usernameErr}</p>
+            )}
           </div>
 
           {/* Specialties (tags, max 4) */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Keahlian (maks {MAX_SPECIALTIES})</label>
+            <label className="block text-sm font-medium text-gray-700">
+              Keahlian (maks {MAX_SPECIALTIES})
+            </label>
             <div className="mt-1 rounded-xl border border-gray-300 px-2 py-2">
               <div className="flex flex-wrap gap-2">
                 {specialties.map((s) => (
-                  <span key={s} className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-sm">
+                  <span
+                    key={s}
+                    className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-sm"
+                  >
                     {s}
-                    <button type="button" className="text-gray-500 hover:text-gray-700" onClick={() => removeSpecialty(s)} aria-label={`Hapus ${s}`}>
+                    <button
+                      type="button"
+                      className="text-gray-500 hover:text-gray-700"
+                      onClick={() => removeSpecialty(s)}
+                      aria-label={`Hapus ${s}`}
+                    >
                       ×
                     </button>
                   </span>
@@ -314,19 +367,32 @@ export default function FreelanceFormPage() {
                 )}
               </div>
             </div>
-            <p className="mt-1 text-xs text-gray-500">Tekan Enter untuk menambahkan. Contoh: Web Development, Design, Photography.</p>
+            <p className="mt-1 text-xs text-gray-500">
+              Tekan Enter untuk menambahkan. Contoh: Web Development, Design,
+              Photography.
+            </p>
           </div>
 
           {/* Service Categories (max 3) + sub-jasa (max 3/kategori) */}
           <div>
-            <label className="block text-sm font-medium text-gray-700">Kategori Jasa</label>
+            <label className="block text-sm font-medium text-gray-700">
+              Kategori Jasa
+            </label>
 
             {/* Chips kategori terpilih + tombol tambah */}
             <div className="mt-2 flex flex-wrap gap-2">
               {selectedCats.map((c) => (
-                <span key={c} className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-sm">
+                <span
+                  key={c}
+                  className="inline-flex items-center gap-1 rounded-full bg-gray-100 px-3 py-1 text-sm"
+                >
                   {c}
-                  <button type="button" className="text-gray-500 hover:text-gray-700" onClick={() => removeCategory(c)} aria-label={`Hapus ${c}`}>
+                  <button
+                    type="button"
+                    className="text-gray-500 hover:text-gray-700"
+                    onClick={() => removeCategory(c)}
+                    aria-label={`Hapus ${c}`}
+                  >
                     ×
                   </button>
                 </span>
@@ -345,17 +411,23 @@ export default function FreelanceFormPage() {
             {/* Picker kategori */}
             {pickerOpen && (
               <div className="mt-2 rounded-xl border border-gray-200 bg-white p-2 shadow-sm">
-                {ALL_CATEGORIES.filter((c) => !selectedCats.includes(c)).length === 0 ? (
-                  <div className="px-2 py-1 text-sm text-gray-500">Semua kategori sudah dipilih.</div>
+                {ALL_CATEGORIES.filter((c) => !selectedCats.includes(c))
+                  .length === 0 ? (
+                  <div className="px-2 py-1 text-sm text-gray-500">
+                    Semua kategori sudah dipilih.
+                  </div>
                 ) : (
                   <div className="grid grid-cols-2 gap-2">
-                    {ALL_CATEGORIES.filter((c) => !selectedCats.includes(c)).map((c) => (
+                    {ALL_CATEGORIES.filter(
+                      (c) => !selectedCats.includes(c)
+                    ).map((c) => (
                       <button
                         key={c}
                         type="button"
                         onClick={() => {
                           addCategory(c);
-                          if (selectedCats.length + 1 >= MAX_CATEGORIES) setPickerOpen(false);
+                          if (selectedCats.length + 1 >= MAX_CATEGORIES)
+                            setPickerOpen(false);
                         }}
                         className="rounded-lg border border-gray-200 px-3 py-2 text-sm hover:bg-gray-50"
                       >
@@ -365,7 +437,11 @@ export default function FreelanceFormPage() {
                   </div>
                 )}
                 <div className="mt-2 text-right">
-                  <button type="button" onClick={() => setPickerOpen(false)} className="text-sm text-gray-700 underline underline-offset-4 hover:text-gray-900">
+                  <button
+                    type="button"
+                    onClick={() => setPickerOpen(false)}
+                    className="text-sm text-gray-700 underline underline-offset-4 hover:text-gray-900"
+                  >
                     Selesai
                   </button>
                 </div>
@@ -378,9 +454,14 @@ export default function FreelanceFormPage() {
                 const picked = servicesByCategory[cat] ?? [];
                 const options = SERVICE_GROUPS[cat];
                 return (
-                  <div key={cat} className="rounded-xl border border-gray-200 p-3">
+                  <div
+                    key={cat}
+                    className="rounded-xl border border-gray-200 p-3"
+                  >
                     <div className="mb-2 flex items-center justify-between">
-                      <div className="text-sm font-medium text-gray-900">{cat}</div>
+                      <div className="text-sm font-medium text-gray-900">
+                        {cat}
+                      </div>
                       <div className="text-xs text-gray-500">
                         {picked.length}/{MAX_PER_CATEGORY}
                       </div>
@@ -389,10 +470,22 @@ export default function FreelanceFormPage() {
                     <div className="space-y-1">
                       {options.map((svc) => {
                         const checked = picked.includes(svc);
-                        const disabled = !checked && picked.length >= MAX_PER_CATEGORY;
+                        const disabled =
+                          !checked && picked.length >= MAX_PER_CATEGORY;
                         return (
-                          <label key={svc} className={`flex items-center gap-2 text-sm ${disabled ? "opacity-50" : ""}`}>
-                            <input type="checkbox" checked={checked} disabled={disabled} onChange={() => toggleSubService(cat, svc)} className="h-4 w-4" />
+                          <label
+                            key={svc}
+                            className={`flex items-center gap-2 text-sm ${
+                              disabled ? "opacity-50" : ""
+                            }`}
+                          >
+                            <input
+                              type="checkbox"
+                              checked={checked}
+                              disabled={disabled}
+                              onChange={() => toggleSubService(cat, svc)}
+                              className="h-4 w-4"
+                            />
                             <span>{svc}</span>
                           </label>
                         );
@@ -406,10 +499,18 @@ export default function FreelanceFormPage() {
 
           {/* Actions */}
           <div className="flex items-center justify-end gap-2">
-            <button type="button" onClick={() => router.replace("/")} className="rounded-xl border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-100">
+            <button
+              type="button"
+              onClick={() => router.replace("/")}
+              className="rounded-xl border border-gray-300 px-4 py-2 text-gray-700 hover:bg-gray-100"
+            >
               Batal
             </button>
-            <button type="submit" disabled={!canSubmit || loading} className="rounded-xl bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 disabled:opacity-60">
+            <button
+              type="submit"
+              disabled={!canSubmit || loading}
+              className="rounded-xl bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 disabled:opacity-60"
+            >
               {loading ? "Menyimpan…" : "Simpan & Lanjut"}
             </button>
           </div>

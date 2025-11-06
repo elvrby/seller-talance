@@ -15,9 +15,17 @@ export default function VerifyEmailPage() {
   const [userReady, setUserReady] = useState(false);
 
   useEffect(() => {
-    const unsub = onAuthStateChanged(auth, (u) => {
+    const unsub = onAuthStateChanged(auth, async (u) => {
       if (!u) {
         router.replace("/account/sign-in");
+        return;
+      }
+      try {
+        await u.reload();
+        await u.getIdToken(true);
+      } catch {}
+      if (u.emailVerified) {
+        router.replace("/account/freelance-form");
         return;
       }
       setUserReady(true);
@@ -54,12 +62,16 @@ export default function VerifyEmailPage() {
         return;
       }
 
-      // 🔄 Paksa refresh user dan token supaya emailVerified ter-update di client
       await u.reload();
       await u.getIdToken(true);
 
-      setMsg("Email berhasil diverifikasi! Mengalihkan…");
-      setTimeout(() => router.replace("/account/freelance-form"), 900);
+      if (u.emailVerified) {
+        setMsg("Email berhasil diverifikasi! Mengalihkan…");
+        setTimeout(() => router.replace("/account/freelance-form"), 700);
+        return;
+      }
+
+      setMsg("Kode valid. Coba lagi sebentar jika belum dialihkan.");
     } catch {
       setErr("Gagal memverifikasi kode");
     } finally {
@@ -72,12 +84,18 @@ export default function VerifyEmailPage() {
   return (
     <main className="min-h-[calc(100vh-64px)] bg-white">
       <div className="mx-auto max-w-md px-4 py-10">
-        <h1 className="text-2xl font-semibold text-gray-900">Verifikasi Email</h1>
-        <p className="mt-1 text-sm text-gray-500">Masukkan 6 digit kode yang kami kirim ke email Anda.</p>
+        <h1 className="text-2xl font-semibold text-gray-900">
+          Verifikasi Email
+        </h1>
+        <p className="mt-1 text-sm text-gray-500">
+          Masukkan 6 digit kode yang kami kirim ke email Anda.
+        </p>
 
         <form onSubmit={onVerify} className="mt-6 space-y-4">
           <div>
-            <label className="block text-sm font-medium text-gray-700">Kode OTP</label>
+            <label className="block text-sm font-medium text-gray-700">
+              Kode OTP
+            </label>
             <input
               inputMode="numeric"
               maxLength={6}
@@ -88,10 +106,22 @@ export default function VerifyEmailPage() {
             />
           </div>
 
-          {err && <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">{err}</div>}
-          {msg && <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">{msg}</div>}
+          {err && (
+            <div className="rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-700">
+              {err}
+            </div>
+          )}
+          {msg && (
+            <div className="rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-sm text-emerald-800">
+              {msg}
+            </div>
+          )}
 
-          <button type="submit" disabled={loading || code.trim().length !== 6} className="w-full rounded-xl bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 disabled:opacity-60">
+          <button
+            type="submit"
+            disabled={loading || code.trim().length !== 6}
+            className="w-full rounded-xl bg-gray-900 px-4 py-2 text-white hover:bg-gray-800 disabled:opacity-60"
+          >
             {loading ? "Memverifikasi..." : "Verifikasi"}
           </button>
         </form>

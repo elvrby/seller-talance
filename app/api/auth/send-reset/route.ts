@@ -16,9 +16,12 @@ function resetEmailHtml(link: string, email?: string) {
 export async function POST(req: Request) {
   try {
     const { email, continueUrl } = await req.json();
-    if (!email) return NextResponse.json({ error: "Email diperlukan" }, { status: 400 });
+    if (!email)
+      return NextResponse.json({ error: "Email diperlukan" }, { status: 400 });
 
-    const url = `${APP_URL}/account/reset-password?continueUrl=${encodeURIComponent(continueUrl || `${APP_URL}/account/sign-in`)}`;
+    const url = `${APP_URL}/account/reset-password?continueUrl=${encodeURIComponent(
+      continueUrl || `${APP_URL}/account/sign-in`
+    )}`;
 
     const link = await adminAuth.generatePasswordResetLink(email, {
       url,
@@ -35,6 +38,9 @@ export async function POST(req: Request) {
     return NextResponse.json({ ok: true, messageId: info.messageId });
   } catch (e: any) {
     console.error("[send-reset] error:", e?.code || e?.name, e?.message);
-    return NextResponse.json({ ok: false, error: "Gagal mengirim email reset" }, { status: 500 });
+    return NextResponse.json(
+      { ok: false, error: "Gagal mengirim email reset" },
+      { status: 500 }
+    );
   }
 }
