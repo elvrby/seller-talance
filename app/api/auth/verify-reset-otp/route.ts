@@ -2,7 +2,7 @@
 export const runtime = "nodejs";
 
 import { NextResponse } from "next/server";
-
+import { adminAuth, adminDb } from "@/libs/firebase/admin";
 import bcrypt from "bcryptjs";
 
 const MAX_ATTEMPTS = 5;
@@ -17,8 +17,7 @@ export async function POST(req: Request) {
       );
     }
 
-    const { adminApp, adminAuth } = require("@lib/firebase/admin");
-    const db = adminApp.firestore();
+    const db = adminDb;
 
     // Ambil dokumen OTP terbaru untuk email tsb yang belum used
     const snap = await db
@@ -30,7 +29,6 @@ export async function POST(req: Request) {
       .get();
 
     if (snap.empty) {
-      // Jawaban generik
       return NextResponse.json(
         { error: "OTP tidak valid atau kadaluarsa" },
         { status: 400 }
@@ -65,21 +63,18 @@ export async function POST(req: Request) {
       return NextResponse.json({ error: "OTP salah" }, { status: 400 });
     }
 
-    // OTP valid → update password via Admin SDK
-    // (Tanpa autentikasi user aktif, ini satu-satunya cara)
+    // Update password via Admin SDK
     let uid: string | null = null;
     try {
       const user = await adminAuth.getUserByEmail(email);
       uid = user.uid;
     } catch {
-      // Jangan bocorkan bahwa user tidak ada
       await doc.ref.update({ used: true });
-      return NextResponse.json({ ok: true }); // generik
+      return NextResponse.json({ ok: true });
     }
 
     await adminAuth.updateUser(uid!, { password: newPassword });
 
-    // Tandai used agar tidak bisa dipakai lagi (replay-safe)
     await doc.ref.update({ used: true });
 
     return NextResponse.json({ ok: true });
