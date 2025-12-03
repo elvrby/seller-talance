@@ -1,5 +1,11 @@
-// /libs/firebase/auth.ts
-import { type User, GoogleAuthProvider, signInWithPopup, onAuthStateChanged as _onAuthStateChanged, signOut } from "firebase/auth";
+// libs/firebase/auth.ts
+import {
+  type User,
+  GoogleAuthProvider,
+  signInWithPopup,
+  onAuthStateChanged as _onAuthStateChanged,
+  signOut,
+} from "firebase/auth";
 import { doc, setDoc, getDoc, serverTimestamp } from "firebase/firestore";
 import { firebaseAuth, firebaseFirestore } from "./config";
 
@@ -31,13 +37,17 @@ export async function signInWithGoogle() {
     if (snapshot.exists()) {
       await setDoc(userDocRef, payload, { merge: true });
     } else {
-      await setDoc(userDocRef, { ...payload, roles: null, createdAt: serverTimestamp() }, { merge: true });
+      await setDoc(
+        userDocRef,
+        { ...payload, roles: null, createdAt: serverTimestamp() },
+        { merge: true }
+      );
     }
 
     return uid;
   } catch (error: any) {
     console.error("Error signing in with Google:", error?.code, error?.message);
-    throw error; // biar UI bisa menampilkan error code
+    throw error;
   }
 }
 

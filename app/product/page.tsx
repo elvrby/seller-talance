@@ -184,7 +184,7 @@ export default function ProductsPage() {
                 <div className="min-w-0">
                   <div className="flex items-start gap-2 sm:items-center">
                     <Link
-                      href={`/product/edit/${it.id}`}
+                      href={`/product/${it.productId}`}
                       className="truncate text-sm font-medium text-gray-900 sm:text-base"
                       title={it.title}
                     >
