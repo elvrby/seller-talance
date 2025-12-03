@@ -139,7 +139,7 @@ function StepBar({
         const base =
           "flex-shrink-0 flex items-center relative overflow-hidden rounded-full px-3 py-1.5 text-[12px] sm:text-sm transition";
         const activeCls = s.active
-          ? "bg-gray-900 text-white"
+          ? "bg-green-700 text-white"
           : s.enabled
           ? "bg-gray-200 text-gray-800 hover:bg-gray-300"
           : "bg-gray-100 text-gray-400 cursor-not-allowed";

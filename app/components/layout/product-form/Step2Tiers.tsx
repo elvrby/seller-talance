@@ -18,7 +18,10 @@ type Props = {
   onChange: (tiers: Props["value"]) => void;
 };
 
-const SPECIALS_BY_TYPE: Record<ServiceType, Array<{ key: string; label: string }>> = {
+const SPECIALS_BY_TYPE: Record<
+  ServiceType,
+  Array<{ key: string; label: string }>
+> = {
   Web: [
     { key: "sourceCode", label: "Source code" },
     { key: "seoOptimization", label: "SEO optimization" },
@@ -51,7 +54,13 @@ function ChevronDown(props: React.SVGProps<SVGSVGElement>) {
 }
 function CheckIcon(props: React.SVGProps<SVGSVGElement>) {
   return (
-    <svg viewBox="0 0 20 20" fill="none" stroke="currentColor" strokeWidth="2.5" {...props}>
+    <svg
+      viewBox="0 0 20 20"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.5"
+      {...props}
+    >
       <path strokeLinecap="round" strokeLinejoin="round" d="M5 10.5l3 3 7-7" />
     </svg>
   );
@@ -72,12 +81,35 @@ type ResponsiveSelectProps = {
   disabled?: boolean;
 };
 
-function ResponsiveSelect({ label, value, onChange, options, placeholder = "Pilih opsi", disabled }: ResponsiveSelectProps) {
-  return <Listbox label={label} value={value} onChange={onChange} options={options} placeholder={placeholder} disabled={disabled} />;
+function ResponsiveSelect({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder = "Pilih opsi",
+  disabled,
+}: ResponsiveSelectProps) {
+  return (
+    <Listbox
+      label={label}
+      value={value}
+      onChange={onChange}
+      options={options}
+      placeholder={placeholder}
+      disabled={disabled}
+    />
+  );
 }
 
 type ListboxProps = ResponsiveSelectProps;
-function Listbox({ label, value, onChange, options, placeholder, disabled }: ListboxProps) {
+function Listbox({
+  label,
+  value,
+  onChange,
+  options,
+  placeholder,
+  disabled,
+}: ListboxProps) {
   const [open, setOpen] = useState(false);
   const [activeIndex, setActiveIndex] = useState<number>(() =>
     Math.max(
@@ -116,7 +148,10 @@ function Listbox({ label, value, onChange, options, placeholder, disabled }: Lis
   const selected = options.find((o) => String(o.value) === String(value));
 
   const onKeyDown = (e: React.KeyboardEvent) => {
-    if (!open && (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ")) {
+    if (
+      !open &&
+      (e.key === "ArrowDown" || e.key === "Enter" || e.key === " ")
+    ) {
       e.preventDefault();
       setOpen(true);
       return;
@@ -162,18 +197,33 @@ function Listbox({ label, value, onChange, options, placeholder, disabled }: Lis
           {selected ? (
             <span className="flex items-center gap-2">
               <span className="truncate">{selected.label}</span>
-              {selected.hint && <span className="rounded-full border border-gray-200 px-2 py-0.5 text-[10px] text-gray-500">{selected.hint}</span>}
+              {selected.hint && (
+                <span className="rounded-full border border-gray-200 px-2 py-0.5 text-[10px] text-gray-500">
+                  {selected.hint}
+                </span>
+              )}
             </span>
           ) : (
             <span className="text-gray-400">{placeholder}</span>
           )}
         </span>
-        <ChevronDown className={`h-5 w-5 text-gray-400 transition ${open ? "rotate-180" : ""}`} />
+        <ChevronDown
+          className={`h-5 w-5 text-gray-400 transition ${
+            open ? "rotate-180" : ""
+          }`}
+        />
       </button>
 
       {/* Popover */}
       {open && (
-        <div id={popId} ref={popRef} className="absolute z-30 mt-2 w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl" role="listbox" tabIndex={-1} onKeyDown={onKeyDown}>
+        <div
+          id={popId}
+          ref={popRef}
+          className="absolute z-30 mt-2 w-full overflow-hidden rounded-xl border border-gray-200 bg-white shadow-xl"
+          role="listbox"
+          tabIndex={-1}
+          onKeyDown={onKeyDown}
+        >
           <div className="max-h-64 overflow-auto py-1">
             {options.map((o, i) => {
               const isActive = i === activeIndex;
@@ -183,7 +233,10 @@ function Listbox({ label, value, onChange, options, placeholder, disabled }: Lis
                   key={String(o.value)}
                   role="option"
                   aria-selected={isSelected}
-                  className={["flex cursor-pointer items-center justify-between px-3 py-2 text-sm", isActive ? "bg-gray-50" : ""].join(" ")}
+                  className={[
+                    "flex cursor-pointer items-center justify-between px-3 py-2 text-sm",
+                    isActive ? "bg-gray-50" : "",
+                  ].join(" ")}
                   onMouseEnter={() => setActiveIndex(i)}
                   onTouchStart={() => setActiveIndex(i)}
                   onClick={() => {
@@ -193,9 +246,15 @@ function Listbox({ label, value, onChange, options, placeholder, disabled }: Lis
                 >
                   <div className="flex min-w-0 items-center gap-2">
                     <span className="truncate">{o.label}</span>
-                    {o.hint && <span className="hidden md:inline-block rounded-full border border-gray-200 px-2 py-0.5 text-[10px] text-gray-500">{o.hint}</span>}
+                    {o.hint && (
+                      <span className="hidden md:inline-block rounded-full border border-gray-200 px-2 py-0.5 text-[10px] text-gray-500">
+                        {o.hint}
+                      </span>
+                    )}
                   </div>
-                  {isSelected && <CheckIcon className="h-4 w-4 text-gray-900" />}
+                  {isSelected && (
+                    <CheckIcon className="h-4 w-4 text-gray-900" />
+                  )}
                 </div>
               );
             })}
@@ -215,18 +274,39 @@ type FancyCheckboxProps = {
   label: string;
   rounded?: "md" | "lg" | "full";
 };
-function FancyCheckbox({ checked, onChange, label, rounded = "lg" }: FancyCheckboxProps) {
+function FancyCheckbox({
+  checked,
+  onChange,
+  label,
+  rounded = "lg",
+}: FancyCheckboxProps) {
   return (
-    <button type="button" onClick={onChange} className="group inline-flex select-none items-center gap-2" aria-pressed={checked}>
+    <button
+      type="button"
+      onClick={onChange}
+      className="group inline-flex select-none items-center gap-2"
+      aria-pressed={checked}
+    >
       <span
         className={[
           "inline-flex h-5 w-5 items-center justify-center border transition-all duration-150",
-          checked ? "border-gray-900 bg-gray-900 text-white" : "border-gray-300 bg-white text-transparent",
-          rounded === "full" ? "rounded-full" : rounded === "md" ? "rounded-md" : "rounded-lg",
+          checked
+            ? "border-gray-900 bg-gray-900 text-white"
+            : "border-gray-300 bg-white text-transparent",
+          rounded === "full"
+            ? "rounded-full"
+            : rounded === "md"
+            ? "rounded-md"
+            : "rounded-lg",
           "focus-visible:outline-none focus-visible:ring-4 focus-visible:ring-gray-900/10",
         ].join(" ")}
       >
-        <CheckIcon className={["h-3.5 w-3.5 transition", checked ? "opacity-100 scale-100" : "opacity-0 scale-75"].join(" ")} />
+        <CheckIcon
+          className={[
+            "h-3.5 w-3.5 transition",
+            checked ? "opacity-100 scale-100" : "opacity-0 scale-75",
+          ].join(" ")}
+        />
       </span>
       <span className="text-sm">{label}</span>
     </button>
@@ -261,7 +341,10 @@ export default function Step2Tiers({ serviceType, value, onChange }: Props) {
   };
 
   // Opsi modern (dengan hint kecil biar terlihat “rich”)
-  const deliveryOptions: Option[] = Array.from({ length: 10 }, (_, i) => i + 1).map((d) => ({
+  const deliveryOptions: Option[] = Array.from(
+    { length: 10 },
+    (_, i) => i + 1
+  ).map((d) => ({
     value: d,
     label: `${d} hari`,
     hint: d <= 3 ? "Cepat" : d >= 8 ? "Santai" : undefined,
@@ -280,7 +363,8 @@ export default function Step2Tiers({ serviceType, value, onChange }: Props) {
     <section className="space-y-6">
       {!serviceType && (
         <div className="rounded-xl border border-amber-200 bg-amber-50 p-3 text-amber-800 text-sm">
-          Pilih tipe jasa dulu di langkah 1 agar opsi <b>Special</b> muncul sesuai kategori.
+          Pilih tipe jasa dulu di langkah 1 agar opsi <b>Special</b> muncul
+          sesuai kategori.
         </div>
       )}
 
@@ -295,37 +379,58 @@ export default function Step2Tiers({ serviceType, value, onChange }: Props) {
               <div className="space-y-3">
                 {/* Deskripsi */}
                 <div>
-                  <label className="block text-xs font-medium">Deskripsi (≤ 400 kata)</label>
+                  <label className="block text-xs font-medium">
+                    Deskripsi (≤ 400 kata)
+                  </label>
                   <textarea
                     value={v.description}
                     onChange={(e) => update(t, { description: e.target.value })}
-                    className="mt-1 h-24 w-full resize-none rounded-xl border border-gray-300 px-3 py-2 outline-none transition focus:border-gray-900 focus:ring-4 focus:ring-gray-900/10"
+                    className="mt-1 h-24 w-full resize-none rounded-xl border border-gray-300 px-3 py-2 outline-none transition "
                     maxLength={2000}
                     placeholder="Ceritakan apa yang didapat pembeli di tier ini…"
                   />
                 </div>
 
                 {/* Waktu (Listbox unified) */}
-                <ResponsiveSelect label="Waktu Pengerjaan" value={v.deliveryDays} onChange={(val) => update(t, { deliveryDays: Number(val) })} options={deliveryOptions} placeholder="Pilih durasi" />
+                <ResponsiveSelect
+                  label="Waktu Pengerjaan"
+                  value={v.deliveryDays}
+                  onChange={(val) => update(t, { deliveryDays: Number(val) })}
+                  options={deliveryOptions}
+                  placeholder="Pilih durasi"
+                />
 
                 {/* Revisi (Listbox unified) */}
-                <ResponsiveSelect label="Total Revisi" value={v.revisions} onChange={(val) => update(t, { revisions: Number(val) })} options={revisionOptions} placeholder="Pilih revisi" />
+                <ResponsiveSelect
+                  label="Total Revisi"
+                  value={v.revisions}
+                  onChange={(val) => update(t, { revisions: Number(val) })}
+                  options={revisionOptions}
+                  placeholder="Pilih revisi"
+                />
 
                 {/* Harga */}
                 <div>
-                  <label className="block text-xs font-medium">Harga (min Rp 15.000)</label>
+                  <label className="block text-xs font-medium">
+                    Harga (min Rp 15.000)
+                  </label>
                   <input
                     type="text"
                     inputMode="numeric"
                     autoComplete="off"
-                    value={v.price ? new Intl.NumberFormat("id-ID").format(v.price) : ""}
+                    value={
+                      v.price
+                        ? new Intl.NumberFormat("id-ID").format(v.price)
+                        : ""
+                    }
                     onChange={(e) => {
                       const digits = e.target.value.replace(/\D/g, "");
                       const num = digits ? Number(digits) : 0;
                       update(t, { price: num });
                     }}
                     onBlur={() => {
-                      if (v.price && v.price < 15000) update(t, { price: 15000 });
+                      if (v.price && v.price < 15000)
+                        update(t, { price: 15000 });
                     }}
                     className="mt-1 w-full rounded-xl border border-gray-300 px-3 py-2 outline-none transition focus:border-gray-900 focus:ring-4 focus:ring-gray-900/10"
                     placeholder="15.000"
@@ -339,7 +444,19 @@ export default function Step2Tiers({ serviceType, value, onChange }: Props) {
                     <div className="space-y-1">
                       {specials.map((s) => {
                         const checked = Boolean(v.specials?.[s.key]);
-                        return <FancyCheckbox key={s.key} checked={checked} onChange={() => update(t, { specials: { ...v.specials, [s.key]: !checked } })} label={s.label} rounded="lg" />;
+                        return (
+                          <FancyCheckbox
+                            key={s.key}
+                            checked={checked}
+                            onChange={() =>
+                              update(t, {
+                                specials: { ...v.specials, [s.key]: !checked },
+                              })
+                            }
+                            label={s.label}
+                            rounded="lg"
+                          />
+                        );
                       })}
                     </div>
                   </div>
@@ -350,7 +467,9 @@ export default function Step2Tiers({ serviceType, value, onChange }: Props) {
         })}
       </div>
 
-      <p className="text-xs text-gray-500">Tips: Buat perbedaan jelas antar tier (fitur, durasi, revisi, harga).</p>
+      <p className="text-xs text-gray-500">
+        Tips: Buat perbedaan jelas antar tier (fitur, durasi, revisi, harga).
+      </p>
     </section>
   );
 }

@@ -12,7 +12,10 @@ export default function Header() {
   // Tutup dropdown profile jika klik di luar + ESC untuk close semuanya
   useEffect(() => {
     const onClick = (e: MouseEvent) => {
-      if (profileRef.current && !profileRef.current.contains(e.target as Node)) {
+      if (
+        profileRef.current &&
+        !profileRef.current.contains(e.target as Node)
+      ) {
         setProfileOpen(false);
       }
     };
@@ -65,8 +68,16 @@ export default function Header() {
     <header className="sticky top-0 z-50 w-full border-b border-slate-200 bg-white backdrop-blur">
       <div className="relative flex h-16 items-center">
         {/* Logo + brand */}
-        <Link href="/" className="group flex items-center rounded-xl px-4 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400">
-          <Image src={"/talance-logo.png"} alt="Talance Logo" width={30} height={30} />
+        <Link
+          href="/"
+          className="group flex items-center rounded-xl px-4 py-1 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
+        >
+          <Image
+            src={"/talance-logo.png"}
+            alt="Talance Logo"
+            width={30}
+            height={30}
+          />
         </Link>
         <div>
           <span className="font-medium">Talance Seller</span>
@@ -82,7 +93,15 @@ export default function Header() {
             title="Notifikasi"
             onClick={() => setMenuOpen(false)}
           >
-            <svg width={22} height={22} viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+            <svg
+              fill="none"
+              stroke="black"
+              width={22}
+              height={22}
+              viewBox="0 0 32 32"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
               <path d="M29.78,24.37l-3.65-4.48L26,12C24.85,5.58,21.21,2,16,2,10.5,2,6.08,6,5,11.82L4.87,20,2.14,24.48A1,1,0,0,0,3,26h9a4,4,0,0,0,8,0h9a1,1,0,0,0,.9-.57A1,1,0,0,0,29.78,24.37ZM16,28a2,2,0,0,1-2-2h4A2,2,0,0,1,16,28Z" />
             </svg>
           </Link>
@@ -94,9 +113,22 @@ export default function Header() {
             title="Inbox"
             onClick={() => setMenuOpen(false)}
           >
-            <svg width="22" height="24" viewBox="0 0 36 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <path d="M33 24H3C1.35 24 0 22.65 0 21V3C0 1.35 1.35 0 3 0H33C34.65 0 36 1.35 36 3V21C36 22.65 34.65 24 33 24Z" stroke="currentColor" />
-              <path d="M18 15.9L4.84 7.38L18 14.11L31.16 6.12" stroke="currentColor" />
+            <svg
+              width="22"
+              height="24"
+              viewBox="0 0 36 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <path
+                d="M33 24H3C1.35 24 0 22.65 0 21V3C0 1.35 1.35 0 3 0H33C34.65 0 36 1.35 36 3V21C36 22.65 34.65 24 33 24Z"
+                stroke="currentColor"
+              />
+              <path
+                d="M18 15.9L4.84 7.38L18 14.11L31.16 6.12"
+                stroke="currentColor"
+              />
             </svg>
           </Link>
 
@@ -106,8 +138,19 @@ export default function Header() {
             className="inline-flex h-10 w-10 items-center justify-center rounded-xl text-black hover:bg-slate-100 md:hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
             onClick={() => setMenuOpen(true)}
           >
-            <svg aria-hidden="true" viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2">
-              <path strokeLinecap="round" strokeLinejoin="round" d="M4 6h16M4 12h16M4 18h16" />
+            <svg
+              aria-hidden="true"
+              viewBox="0 0 24 24"
+              className="h-5 w-5"
+              fill="none"
+              stroke="currentColor"
+              strokeWidth="2"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                d="M4 6h16M4 12h16M4 18h16"
+              />
             </svg>
           </button>
 
@@ -118,8 +161,24 @@ export default function Header() {
             className="hidden md:inline-flex h-10 w-10 items-center justify-center rounded-xl text-black hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
             title="Notifikasi"
           >
-            <svg width={22} height={22} viewBox="0 0 32 32" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <path d="M29.78,24.37l-3.65-4.48L26,12C24.85,5.58,21.21,2,16,2,10.5,2,6.08,6,5,11.82L4.87,20,2.14,24.48A1,1,0,0,0,3,26h9a4,4,0,0,0,8,0h9a1,1,0,0,0,.9-.57A1,1,0,0,0,29.78,24.37Z" />
+            <svg
+              fill="none"
+              stroke="black"
+              strokeWidth={20}
+              width={22}
+              height={22}
+              version="1.1"
+              viewBox="0 0 500 500"
+            >
+              <g>
+                <g id="Layer_1">
+                  <g>
+                    <path d="M266.83,77.64c13.04,0,31.5,3.7,50.31,12.3,43.26,19.79,71.62,62.37,74.43,109.86,1.58,26.71,4.91,72.36,9.98,90.5,7.37,26.36,41.95,88.9,41.95,111.01s-41,18.71-41,18.71H75.99s-30.23-2.27-19.65-32.12c0,0,43.46-73.69,43.46-102.79s4.53-95.61,12.09-112.62,37.18-90.11,128.42-94.81c6.25-.32,20.26-.05,26.52-.05Z" />
+                    <path d="M301.89,81.85s.51-56.11-52.23-56.11-50.06,57.36-50.06,57.36c0,0,28.14-4.64,51.13-4.64s51.15,3.39,51.15,3.39Z" />
+                    <path d="M305.76,420.03s-1.95,54.23-56.1,54.23-53.02-54.23-53.02-54.23h109.12Z" />
+                  </g>
+                </g>
+              </g>
             </svg>
           </Link>
 
@@ -129,9 +188,22 @@ export default function Header() {
             className="hidden md:inline-flex h-10 w-10 items-center justify-center rounded-xl text-black hover:bg-slate-100 focus:outline-none focus-visible:ring-2 focus-visible:ring-slate-400"
             title="Inbox"
           >
-            <svg width="22" height="24" viewBox="0 0 36 24" fill="none" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
-              <path d="M33 24H3C1.35 24 0 22.65 0 21V3C0 1.35 1.35 0 3 0H33C34.65 0 36 1.35 36 3V21C36 22.65 34.65 24 33 24Z" stroke="currentColor" />
-              <path d="M18 15.9L4.84 7.38L18 14.11L31.16 6.12" stroke="currentColor" />
+            <svg
+              width="22"
+              height="24"
+              viewBox="0 0 36 24"
+              fill="none"
+              xmlns="http://www.w3.org/2000/svg"
+              aria-hidden="true"
+            >
+              <path
+                d="M33 24H3C1.35 24 0 22.65 0 21V3C0 1.35 1.35 0 3 0H33C34.65 0 36 1.35 36 3V21C36 22.65 34.65 24 33 24Z"
+                stroke="currentColor"
+              />
+              <path
+                d="M18 15.9L4.84 7.38L18 14.11L31.16 6.12"
+                stroke="currentColor"
+              />
             </svg>
           </Link>
 
@@ -146,17 +218,39 @@ export default function Header() {
               <span className="inline-flex h-8 w-8 items-center justify-center overflow-hidden rounded-full bg-slate-100 ring-1 ring-slate-200">
                 <span className="text-sm font-medium text-black">GM</span>
               </span>
-              <svg aria-hidden="true" viewBox="0 0 20 20" className="h-4 w-4 text-slate-500 group-hover:text-slate-700 transition" fill="currentColor">
-                <path fillRule="evenodd" d="M5.23 7.21a.75.75 0 011.06.02L10 11.127l3.71-3.896a.75.75 0 011.08 1.04l-4.24 4.46a.75.75 0 01-1.08 0l-4.24-4.46a.75.75 0 01.02-1.06z" clipRule="evenodd" />
+              <svg
+                aria-hidden="true"
+                viewBox="0 0 20 20"
+                className="h-4 w-4 text-slate-500 group-hover:text-slate-700 transition"
+                fill="currentColor"
+              >
+                <path
+                  fillRule="evenodd"
+                  d="M5.23 7.21a.75.75 0 011.06.02L10 11.127l3.71-3.896a.75.75 0 011.08 1.04l-4.24 4.46a.75.75 0 01-1.08 0l-4.24-4.46a.75.75 0 01.02-1.06z"
+                  clipRule="evenodd"
+                />
               </svg>
             </button>
 
             {profileOpen && (
-              <div role="menu" className="absolute right-0 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-2xl">
-                <Link href="/profile" role="menuitem" className="block rounded-lg px-3 py-2 text-sm text-slate-800 hover:bg-slate-50" onClick={() => setProfileOpen(false)}>
+              <div
+                role="menu"
+                className="absolute right-0 mt-2 w-48 overflow-hidden rounded-xl border border-slate-200 bg-white p-1.5 shadow-2xl"
+              >
+                <Link
+                  href="/profile"
+                  role="menuitem"
+                  className="block rounded-lg px-3 py-2 text-sm text-slate-800 hover:bg-slate-50"
+                  onClick={() => setProfileOpen(false)}
+                >
                   Profile
                 </Link>
-                <Link href="/settings" role="menuitem" className="block rounded-lg px-3 py-2 text-sm text-slate-800 hover:bg-slate-50" onClick={() => setProfileOpen(false)}>
+                <Link
+                  href="/settings"
+                  role="menuitem"
+                  className="block rounded-lg px-3 py-2 text-sm text-slate-800 hover:bg-slate-50"
+                  onClick={() => setProfileOpen(false)}
+                >
                   Settings
                 </Link>
                 <div className="my-1 h-px bg-slate-200" />
@@ -180,7 +274,11 @@ export default function Header() {
       {menuOpen && (
         <>
           {/* Overlay (klik untuk menutup) */}
-          <div className="fixed inset-0 z-[60] bg-black/50 md:hidden" onClick={() => setMenuOpen(false)} aria-hidden />
+          <div
+            className="fixed inset-0 z-[60] bg-black/50 md:hidden"
+            onClick={() => setMenuOpen(false)}
+            aria-hidden
+          />
 
           {/* Panel dari kanan */}
           <aside
@@ -192,12 +290,32 @@ export default function Header() {
           >
             <div className="flex items-center justify-between px-4 h-16 border-b border-slate-200">
               <div className="flex items-center gap-2">
-                <Image src="/talance-logo.png" alt="Logo" width={28} height={28} />
+                <Image
+                  src="/talance-logo.png"
+                  alt="Logo"
+                  width={28}
+                  height={28}
+                />
                 <span className="font-medium">Menu</span>
               </div>
-              <button onClick={() => setMenuOpen(false)} aria-label="Close menu" className="inline-flex h-10 w-10 items-center justify-center rounded-xl hover:bg-slate-100">
-                <svg viewBox="0 0 24 24" className="h-5 w-5" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+              <button
+                onClick={() => setMenuOpen(false)}
+                aria-label="Close menu"
+                className="inline-flex h-10 w-10 items-center justify-center rounded-xl hover:bg-slate-100"
+              >
+                <svg
+                  viewBox="0 0 24 24"
+                  className="h-5 w-5"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2"
+                  aria-hidden="true"
+                >
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    d="M6 18L18 6M6 6l12 12"
+                  />
                 </svg>
               </button>
             </div>
@@ -210,15 +328,25 @@ export default function Header() {
                     <span className="text-sm font-medium text-black">GM</span>
                   </span>
                   <div>
-                    <p className="text-sm font-medium text-slate-900">Seller Akun</p>
+                    <p className="text-sm font-medium text-slate-900">
+                      Seller Akun
+                    </p>
                     <p className="text-xs text-slate-500">Akun</p>
                   </div>
                 </div>
                 <div className="mt-3 grid grid-cols-2 gap-2">
-                  <Link href="/profile" className="rounded-lg px-3 py-2 text-sm text-slate-800 hover:bg-slate-100 border text-center" onClick={() => setMenuOpen(false)}>
+                  <Link
+                    href="/profile"
+                    className="rounded-lg px-3 py-2 text-sm text-slate-800 hover:bg-slate-100 border text-center"
+                    onClick={() => setMenuOpen(false)}
+                  >
                     Profile
                   </Link>
-                  <Link href="/settings" className="rounded-lg px-3 py-2 text-sm text-slate-800 hover:bg-slate-100 border text-center" onClick={() => setMenuOpen(false)}>
+                  <Link
+                    href="/settings"
+                    className="rounded-lg px-3 py-2 text-sm text-slate-800 hover:bg-slate-100 border text-center"
+                    onClick={() => setMenuOpen(false)}
+                  >
                     Settings
                   </Link>
                 </div>
@@ -228,17 +356,49 @@ export default function Header() {
               <nav className="p-4 border-b border-slate-200">
                 <ul className="space-y-2">
                   <li>
-                    <Link href="/notifications" className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-slate-100 text-slate-900" onClick={() => setMenuOpen(false)}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M15 17h5l-1.4-1.4C18.2 14.2 18 13.3 18 12V9a6 6 0 10-12 0v3c0 1.3-.2 2.2-.6 2.6L4 17h5m6 0v1a3 3 0 11-6 0v-1" />
+                    <Link
+                      href="/notifications"
+                      className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-slate-100 text-slate-900"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <svg
+                        width="22"
+                        height="22"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        aria-hidden="true"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M15 17h5l-1.4-1.4C18.2 14.2 18 13.3 18 12V9a6 6 0 10-12 0v3c0 1.3-.2 2.2-.6 2.6L4 17h5m6 0v1a3 3 0 11-6 0v-1"
+                        />
                       </svg>
                       <span>Notifikasi</span>
                     </Link>
                   </li>
                   <li>
-                    <Link href="/inbox" className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-slate-100 text-slate-900" onClick={() => setMenuOpen(false)}>
-                      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M3 5h18M3 19h18M5 5l7 7 7-7" />
+                    <Link
+                      href="/inbox"
+                      className="flex items-center gap-3 rounded-lg px-3 py-2 hover:bg-slate-100 text-slate-900"
+                      onClick={() => setMenuOpen(false)}
+                    >
+                      <svg
+                        width="22"
+                        height="22"
+                        viewBox="0 0 24 24"
+                        fill="none"
+                        stroke="currentColor"
+                        strokeWidth="2"
+                        aria-hidden="true"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          d="M3 5h18M3 19h18M5 5l7 7 7-7"
+                        />
                       </svg>
                       <span>Inbox</span>
                     </Link>
@@ -250,11 +410,17 @@ export default function Header() {
               <div className="p-4">
                 {groups.map((group) => (
                   <div key={group.title} className="mb-4">
-                    <div className="px-1 pb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">{group.title}</div>
+                    <div className="px-1 pb-2 text-xs font-semibold uppercase tracking-wide text-slate-500">
+                      {group.title}
+                    </div>
                     <ul className="space-y-1">
                       {group.items.map((item) => (
                         <li key={item.href}>
-                          <Link href={item.href} className="block rounded-lg px-3 py-2 hover:bg-slate-100 text-slate-900" onClick={() => setMenuOpen(false)}>
+                          <Link
+                            href={item.href}
+                            className="block rounded-lg px-3 py-2 hover:bg-slate-100 text-slate-900"
+                            onClick={() => setMenuOpen(false)}
+                          >
                             {item.label}
                           </Link>
                         </li>
