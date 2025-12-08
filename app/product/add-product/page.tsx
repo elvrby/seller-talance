@@ -31,13 +31,13 @@ import {
   clearBucketByKey,
 } from "@/app/lib/deferredMedia";
 
-// ================== Tipe & Draft ==================
+// types and initial state (same as yours)...
 type Draft = {
   title: string;
   serviceType: ServiceType | null;
   subServices: string[];
   tiers: Record<"basic" | "standard" | "premium", TierForm>;
-  media: UploadedMedia; // { images: string[]; coverUrl?: string; pdfUrl?: string (dataURL sementara) }
+  media: UploadedMedia;
   qaTemplate: string;
   status: "draft" | "published";
 };
@@ -65,7 +65,7 @@ const initialDraft: Draft = {
   status: "draft",
 };
 
-// ================== Cloudinary helpers ==================
+// cloudinary helpers (same as yours)
 async function signUpload(
   folder: string,
   publicId?: string,
@@ -106,7 +106,7 @@ async function uploadDataUrlToCloudinary(
   form.append("timestamp", String(timestamp));
   form.append("signature", signature);
   form.append("folder", folder);
-  form.append("public_id", publicId); // harus sama dengan yang disign
+  form.append("public_id", publicId);
 
   const resp = await fetch(endpoint, { method: "POST", body: form });
   if (!resp.ok) {
@@ -114,10 +114,10 @@ async function uploadDataUrlToCloudinary(
     console.error("[cloudinary] upload error:", resp.status, text);
     throw new Error("Upload ke Cloudinary gagal");
   }
-  return await resp.json(); // { secure_url, public_id, ... }
+  return await resp.json();
 }
 
-// ================== Step Bar (compact & responsive) ==================
+// StepBar (same as yours)...
 type StepMeta = {
   id: 1 | 2 | 3 | 4;
   label: string;
@@ -125,7 +125,6 @@ type StepMeta = {
   done: boolean;
   active: boolean;
 };
-
 function StepBar({
   steps,
   onSelect,
@@ -168,27 +167,19 @@ function StepBar({
   );
 }
 
-/* Tambahkan di global.css (opsional, untuk sembunyikan scrollbar)
-.no-scrollbar::-webkit-scrollbar { display: none; }
-.no-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
-*/
-
-// ================== Page ==================
+/* Page component */
 export default function AddProductPage() {
   const router = useRouter();
-  // Guard: harus login, verified, dan form freelancer sudah lengkap
   const { user, checking } = useAuthGuard("/account/sign-in", {
     enforceVerified: true,
     enforceFreelanceComplete: true,
   });
 
-  // ✅ inside AddProductPage() body
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [saving, setSaving] = useState(false);
   const [draft, setDraft] = useState<Draft>(initialDraft);
-  const [hasAtLeastOneImage, setHasAtLeastOneImage] = useState(false); // <-- this too
+  const [hasAtLeastOneImage, setHasAtLeastOneImage] = useState(false);
 
-  // BUCKET KEY unik per sesi tambah-produk
   const BUCKET_KEY = useMemo(
     () =>
       `add-product:${
@@ -198,7 +189,6 @@ export default function AddProductPage() {
     []
   );
 
-  // Validasi step
   const canNext1 = useMemo(() => {
     return (
       draft.title.trim().length >= 3 &&
@@ -220,9 +210,8 @@ export default function AddProductPage() {
     return validTier(draft.tiers.basic);
   }, [draft.tiers]);
 
-  const canNext3 = hasAtLeastOneImage; // sebelumnya: true
+  const canNext3 = hasAtLeastOneImage;
 
-  // matrix enable untuk klik step bar (gated)
   const enabledMatrix = useMemo(
     () => [
       true,
@@ -240,19 +229,17 @@ export default function AddProductPage() {
       return {
         id,
         label,
-        enabled: enabledMatrix[idx] || step >= id, // boleh klik mundur kapan saja; maju harus lolos validasi
+        enabled: enabledMatrix[idx] || step >= id,
         done: step > id,
         active: step === id,
       };
     });
   }, [enabledMatrix, step]);
 
-  // Back (ikon)
   const goBackStep = () => {
     if (step > 1) {
       setStep((s) => (s - 1) as any);
     } else {
-      // di step-1: back dianggap cancel — bersihkan bucket
       const id = ensureBucketId(BUCKET_KEY);
       clearAll(id);
       clearBucketByKey(BUCKET_KEY);
@@ -260,7 +247,6 @@ export default function AddProductPage() {
     }
   };
 
-  // Cancel (footer)
   const cancelCreate = () => {
     const id = ensureBucketId(BUCKET_KEY);
     clearAll(id);
@@ -274,7 +260,7 @@ export default function AddProductPage() {
     try {
       const bucketId = ensureBucketId(BUCKET_KEY);
 
-      // 1) Upload semua pending images
+      // upload pending images
       const pendings = listPendingFiles(bucketId);
       const uploadedUrls: string[] = [];
       const uploadedPublicIds: string[] = [];
@@ -290,14 +276,13 @@ export default function AddProductPage() {
         uploadedPublicIds.push(r.public_id);
       }
 
-      // 2) (opsional) upload PDF jika draft.media.pdfUrl berupa dataURL
       let uploadedPdfUrl: string | undefined;
       if (
-        draft.media.pdfUrl &&
-        draft.media.pdfUrl.startsWith("data:application/pdf")
+        (draft.media as any).pdfUrl &&
+        (draft.media as any).pdfUrl.startsWith("data:application/pdf")
       ) {
         const r = await uploadDataUrlToCloudinary(
-          draft.media.pdfUrl,
+          (draft.media as any).pdfUrl,
           "document.pdf",
           "products/docs",
           "raw"
@@ -305,19 +290,16 @@ export default function AddProductPage() {
         uploadedPdfUrl = r.secure_url;
       }
 
-      // 3) Susun media final
-      const allUrls = [...uploadedUrls]; // add-mode: tidak ada existing dari value.images
+      const allUrls = [...uploadedUrls];
       const mediaPayload: any = {
         images: allUrls,
         publicIds: uploadedPublicIds,
       };
       if (uploadedPdfUrl) mediaPayload.pdfUrl = uploadedPdfUrl;
 
-      // pilih cover (pakai cover dari draft kalau ada, kalau tidak pakai gambar pertama)
-      const coverUrlTop = draft.media.coverUrl ?? allUrls[0];
+      const coverUrlTop = (draft.media as any).coverUrl ?? allUrls[0];
       if (coverUrlTop) mediaPayload.coverUrl = coverUrlTop;
 
-      // 4) Payload Firestore (subkoleksi user)
       const payload: any = {
         ownerId: user.uid,
         title: draft.title.trim(),
@@ -332,27 +314,29 @@ export default function AddProductPage() {
         updatedAt: serverTimestamp(),
       };
 
-      // 5) Simpan ke users/{uid}/products
-      const colRef = collection(db, "users", user.uid, "products");
-      const ref = await addDoc(colRef, payload);
+      // ===============================
+      // SIMPAN HANYA KE TOP-LEVEL products/{id}
+      // ===============================
+      const productsCol = collection(db, "products");
+      const ref = await addDoc(productsCol, payload);
 
-      // Simpan productId sebagai field juga (memudahkan query/marketplace)
+      // tulis productId field di dokumen yg baru
       await setDoc(
-        doc(db, "users", user.uid, "products", ref.id),
+        doc(db, "products", ref.id),
         { productId: ref.id },
         { merge: true }
       );
 
-      // 6) Beres → kosongkan bucket & pointer
+      // bersihkan bucket
       clearAll(bucketId);
       clearBucketByKey(BUCKET_KEY);
 
       router.replace("/product");
     } catch (e: any) {
-      console.error("[add-product] save error:", e?.code, e?.message, e);
+      console.error("[add-product] save error:", e);
       if (e?.code === "permission-denied") {
         alert(
-          "Tidak punya izin menulis ke Firestore. Cek rules users/{uid}/products."
+          "Tidak punya izin menulis ke Firestore. Cek rules untuk collection 'products'."
         );
       } else if (e?.message?.includes("Unsupported field value: undefined")) {
         alert("Ada field bernilai undefined. Pastikan semua input terisi.");
@@ -378,7 +362,6 @@ export default function AddProductPage() {
 
   return (
     <main className="mx-auto max-w-3xl p-4">
-      {/* Header: Back icon + Judul + Step Bar */}
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <button
@@ -404,7 +387,6 @@ export default function AddProductPage() {
           <h1 className="text-2xl font-semibold">Tambahkan Produk/Jasa</h1>
         </div>
 
-        {/* Step Bar (klik untuk lompat step, tapi gated) */}
         <div className="w-full sm:w-[55%]">
           <StepBar
             steps={stepItems}
@@ -416,7 +398,6 @@ export default function AddProductPage() {
         </div>
       </div>
 
-      {/* STEP 1 */}
       {step === 1 && (
         <Step1Basic
           value={{
@@ -427,8 +408,6 @@ export default function AddProductPage() {
           onChange={(next) => setDraft((d) => ({ ...d, ...next }))}
         />
       )}
-
-      {/* STEP 2 */}
       {step === 2 && (
         <Step2Tiers
           serviceType={draft.serviceType}
@@ -436,18 +415,14 @@ export default function AddProductPage() {
           onChange={(tiers) => setDraft((d) => ({ ...d, tiers }))}
         />
       )}
-
-      {/* STEP 3 */}
       {step === 3 && (
         <Step3Media
           value={draft.media}
           onChange={(media) => setDraft((d) => ({ ...d, media }))}
           bucketKey={BUCKET_KEY}
-          onValidityChange={setHasAtLeastOneImage} // <-- penting
+          onValidityChange={setHasAtLeastOneImage}
         />
       )}
-
-      {/* STEP 4 */}
       {step === 4 && (
         <Step4Customize
           qaTemplate={draft.qaTemplate}
@@ -456,7 +431,6 @@ export default function AddProductPage() {
         />
       )}
 
-      {/* Footer actions */}
       <div className="mt-6 flex items-center justify-end gap-2">
         <button
           type="button"
@@ -465,7 +439,6 @@ export default function AddProductPage() {
         >
           Cancel
         </button>
-
         {step < 4 ? (
           <button
             type="button"

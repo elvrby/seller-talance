@@ -3,7 +3,14 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
-import { collection, onSnapshot, query } from "firebase/firestore";
+import {
+  collection,
+  onSnapshot,
+  query,
+  where,
+  deleteDoc,
+  doc as firestoreDoc,
+} from "firebase/firestore";
 import { db, firebaseAuth } from "@/libs/firebase/config";
 import { useAuthGuard } from "@/app/hooks/use-auth-guard";
 import DeleteConfirm from "@/app/components/ui/delete";
@@ -40,8 +47,9 @@ export default function ProductsPage() {
     if (!user) return;
     setLoading(true);
 
-    const colRef = collection(db, "users", user.uid, "products");
-    const q = query(colRef);
+    // listen to top-level products where ownerId == user.uid
+    const colRef = collection(db, "products");
+    const q = query(colRef, where("ownerId", "==", user.uid));
 
     const unsub = onSnapshot(
       q,
@@ -69,6 +77,7 @@ export default function ProductsPage() {
         setLoading(false);
       },
       (err) => {
+        // logging supaya gampang debug kalau rules / koneksi gagal
         console.error("[products] snapshot error:", err);
         setLoading(false);
       }
@@ -84,26 +93,46 @@ export default function ProductsPage() {
 
   const onConfirmDelete = async () => {
     if (!target) return;
-    try {
-      if (!firebaseAuth.currentUser) throw new Error("not-auth");
-      setDeleting(true);
+    if (!user) {
+      alert("Kamu harus login untuk menghapus produk.");
+      return;
+    }
 
-      const token = await firebaseAuth.currentUser.getIdToken();
-      const res = await fetch(`/api/products/${target.id}`, {
+    setDeleting(true);
+
+    try {
+      const current = firebaseAuth.currentUser;
+      if (!current) throw new Error("not-auth");
+      const token = await current.getIdToken(true);
+
+      // gunakan productId kalau tersedia (konsistensi)
+      const idToDelete = target.productId ?? target.id;
+
+      // try server-side delete first
+      const res = await fetch(`/api/products/${idToDelete}`, {
         method: "DELETE",
         headers: { Authorization: `Bearer ${token}` },
       });
 
-      if (!res.ok) {
-        const j = await res.json().catch(() => ({} as any));
-        throw new Error(j?.error || "delete_failed");
+      if (res.ok) {
+        setConfirmOpen(false);
+        setTarget(null);
+        return;
       }
+
+      // if server failed, fallback to client-side delete (top-level products/{id})
+      const docRef = firestoreDoc(db, "products", idToDelete);
+      await deleteDoc(docRef);
 
       setConfirmOpen(false);
       setTarget(null);
-    } catch (e) {
-      console.error("[products] delete error:", e);
-      alert("Gagal menghapus produk.");
+    } catch (err: any) {
+      console.error("[products] delete error:", err);
+      if (err?.code === "permission-denied") {
+        alert("Kamu tidak punya izin menghapus produk ini (periksa rules).");
+      } else {
+        alert(err?.message || "Gagal menghapus produk.");
+      }
     } finally {
       setDeleting(false);
     }
@@ -119,7 +148,6 @@ export default function ProductsPage() {
 
   return (
     <main className="mx-auto w-full max-w-5xl px-3 py-4 sm:px-4 md:px-6">
-      {/* Header */}
       <div className="mb-4 flex flex-col gap-2 sm:mb-6 sm:flex-row sm:items-center sm:justify-between">
         <h1 className="text-lg font-semibold sm:text-2xl">Produk Saya</h1>
 
@@ -144,7 +172,6 @@ export default function ProductsPage() {
         </Link>
       </div>
 
-      {/* Empty state */}
       {!loading && items.length === 0 && (
         <div className="rounded-xl border border-dashed p-6 text-center text-sm text-gray-500 sm:p-8">
           Belum ada produk. Klik{" "}
@@ -153,7 +180,6 @@ export default function ProductsPage() {
         </div>
       )}
 
-      {/* List */}
       <ul className="space-y-2 sm:space-y-3">
         {items.map((it) => {
           const thumb =
@@ -163,14 +189,15 @@ export default function ProductsPage() {
               : undefined) ??
             "https://placehold.co/160x160?text=No+Image";
 
+          // pastikan kita selalu menggunakan productId (fall back to doc id)
+          const routeId = it.productId ?? it.id;
+
           return (
             <li
               key={it.id}
               className="rounded-xl border border-gray-200 p-3 transition hover:bg-gray-50 sm:p-3.5"
             >
-              {/* MOBILE-FIRST: grid area */}
               <div className="grid grid-cols-[64px_1fr] grid-rows-[auto_auto_auto] gap-x-3 gap-y-2 sm:grid-cols-[96px_1fr_auto] sm:grid-rows-[auto_auto] sm:items-center">
-                {/* Thumbnail */}
                 <div className="row-span-2 h-16 w-16 overflow-hidden rounded-lg bg-gray-100 sm:h-24 sm:w-24">
                   <img
                     src={thumb}
@@ -180,11 +207,10 @@ export default function ProductsPage() {
                   />
                 </div>
 
-                {/* Title + status */}
                 <div className="min-w-0">
                   <div className="flex items-start gap-2 sm:items-center">
                     <Link
-                      href={`/product/${it.productId}`}
+                      href={`/product/${routeId}`}
                       className="truncate text-sm font-medium text-gray-900 sm:text-base"
                       title={it.title}
                     >
@@ -203,14 +229,12 @@ export default function ProductsPage() {
                     </span>
                   </div>
 
-                  {/* Chips service */}
                   <div className="mt-1 flex flex-wrap items-center gap-1 text-[11px] text-gray-600 sm:text-xs">
                     {it.serviceType && (
                       <span className="rounded-full bg-gray-100 px-2 py-0.5">
                         {it.serviceType}
                       </span>
                     )}
-                    {/* Tampilkan maksimal 2 di mobile, 3 di ≥sm */}
                     {(it.subServices ?? []).slice(0, 2).map((s) => (
                       <span
                         key={s}
@@ -224,7 +248,6 @@ export default function ProductsPage() {
                         +{it.subServices.length - 2}
                       </span>
                     )}
-                    {/* Tambahan satu chip lagi untuk ≥sm */}
                     <span className="hidden sm:inline">
                       {(it.subServices ?? []).slice(2, 3).map((s) => (
                         <span
@@ -243,11 +266,9 @@ export default function ProductsPage() {
                   </div>
                 </div>
 
-                {/* Actions (desktop, right) */}
                 <div className="col-span-2 -mx-1 mt-1 flex items-center gap-1 sm:col-span-1 sm:mx-0 sm:mt-0 sm:justify-end sm:gap-2">
-                  {/* Edit */}
                   <Link
-                    href={`/product/edit/${it.id}`}
+                    href={`/product/edit/${routeId}`}
                     className="inline-flex items-center justify-center gap-2 rounded-lg border border-gray-300 px-2.5 py-1.5 text-gray-800 hover:bg-gray-100 sm:px-3"
                     title="Edit"
                     aria-label="Edit produk"
@@ -268,12 +289,12 @@ export default function ProductsPage() {
                     <span className="hidden text-sm sm:inline">Edit</span>
                   </Link>
 
-                  {/* Delete */}
                   <button
                     onClick={() => askDelete(it)}
                     className="inline-flex items-center justify-center gap-2 rounded-lg border border-red-300 px-2.5 py-1.5 text-red-600 hover:bg-red-50 sm:px-3"
                     title="Hapus"
                     aria-label="Hapus produk"
+                    disabled={deleting}
                   >
                     <svg
                       viewBox="0 0 24 24"
@@ -297,7 +318,6 @@ export default function ProductsPage() {
         })}
       </ul>
 
-      {/* Modal konfirmasi hapus */}
       <DeleteConfirm
         open={confirmOpen}
         onOpenChange={(open) => {

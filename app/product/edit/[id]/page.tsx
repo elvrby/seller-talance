@@ -145,7 +145,7 @@ const toDraft = (raw: any): Draft => {
   };
 };
 
-// ---------- Step Bar (clickable) ----------
+// ---------- Step Bar ----------
 type StepMeta = {
   id: 1 | 2 | 3 | 4;
   label: string;
@@ -200,7 +200,6 @@ export default function EditProductPage() {
   const router = useRouter();
   const params = useParams<{ id: string }>();
   const productId = params?.id;
-
   const { user, checking } = useAuthGuard("/account/sign-in", {
     enforceVerified: true,
     enforceFreelanceComplete: true,
@@ -229,7 +228,8 @@ export default function EditProductPage() {
 
   // Bucket unik per sesi edit
   const BUCKET_KEY = useMemo(() => {
-    const base = isString(productId) ? `edit:${productId}` : "edit:pending";
+    const base =
+      typeof productId === "string" ? `edit:${productId}` : "edit:pending";
     const nonce =
       globalThis.crypto?.randomUUID?.() ??
       `${Date.now()}-${Math.random().toString(36).slice(2)}`;
@@ -240,20 +240,42 @@ export default function EditProductPage() {
     if (!user || !productId) return;
     (async () => {
       try {
-        const ref = doc(db, "users", user.uid, "products", productId);
-        const snap = await getDoc(ref);
-        if (!snap.exists()) {
+        // FIRST: try top-level products/{productId}
+        const topRef = doc(db, "products", productId);
+        const topSnap = await getDoc(topRef);
+
+        let data: any = null;
+        let loadFromPath = "products";
+
+        if (topSnap.exists()) {
+          data = topSnap.data();
+        } else {
+          // FALLBACK: try legacy users/{uid}/products/{productId}
+          const userRef = doc(db, "users", user.uid, "products", productId);
+          const userSnap = await getDoc(userRef);
+          if (userSnap.exists()) {
+            data = userSnap.data();
+            loadFromPath = `users/${user.uid}/products`;
+          }
+        }
+
+        if (!data) {
           setNotFound(true);
           setLoading(false);
+          console.warn(
+            `[edit-product] product ${productId} not found in products/ nor users/${user.uid}/products/`
+          );
           return;
         }
-        const data = snap.data();
+
         const d = toDraft(data);
         if (d.ownerId && d.ownerId !== user.uid) {
           setForbidden(true);
           setLoading(false);
           return;
         }
+
+        // set draft
         setDraft(d);
         setLoading(false);
       } catch (e) {
@@ -287,7 +309,6 @@ export default function EditProductPage() {
 
   const canNext3 = true;
 
-  // enable rules untuk klik step bar
   const enabledMatrix = useMemo(
     () => [
       true,
@@ -304,14 +325,13 @@ export default function EditProductPage() {
       return {
         id,
         label,
-        enabled: enabledMatrix[idx] || step >= id, // step sebelumnya valid ATAU sudah pernah dilalui
+        enabled: enabledMatrix[idx] || step >= id,
         done: step > id,
         active: step === id,
       };
     });
   }, [enabledMatrix, step]);
 
-  // Back (ikon)
   const goBack = () => {
     if (step > 1) {
       setStep((s) => (s - 1) as any);
@@ -323,7 +343,6 @@ export default function EditProductPage() {
     }
   };
 
-  // Cancel (footer)
   const cancelEdit = () => {
     const id = ensureBucketId(BUCKET_KEY);
     clearAll(id);
@@ -337,7 +356,7 @@ export default function EditProductPage() {
     try {
       const bucketId = ensureBucketId(BUCKET_KEY);
 
-      // 1) Upload pending images baru
+      // upload pending images
       const pendings = listPendingFiles(bucketId);
       const uploadedUrls: string[] = [];
       const uploadedPublicIds: string[] = [];
@@ -352,7 +371,7 @@ export default function EditProductPage() {
         uploadedPublicIds.push(r.public_id);
       }
 
-      // (opsional) PDF baru (dataURL) → upload raw
+      // optional PDF
       let pdfUrlFinal = draft.media.pdfUrl;
       if (pdfUrlFinal && pdfUrlFinal.startsWith("data:application/pdf")) {
         const r = await uploadDataUrlToCloudinary(
@@ -364,31 +383,27 @@ export default function EditProductPage() {
         pdfUrlFinal = r.secure_url;
       }
 
-      // 2) Gabungkan existing + uploaded
+      // merge
       const existingUrls = draft.media.images;
       const finalUrls = Array.from(new Set([...existingUrls, ...uploadedUrls]));
 
-      // publicIds: gunakan yang ada, kalau tidak ada derive dari url
       const existingPublicIds: string[] =
         Array.isArray(draft.media.publicIds) && draft.media.publicIds.length
           ? draft.media.publicIds.slice()
           : existingUrls.map((u) => publicIdFromUrl(u)).filter(isString);
-
       const finalPublicIds = Array.from(
         new Set([...existingPublicIds, ...uploadedPublicIds])
       );
 
-      // cover
       const coverUrlTop = draft.media.coverUrl ?? (finalUrls[0] || undefined);
 
       const mediaPayload: any = {
         images: finalUrls,
         publicIds: finalPublicIds,
       };
-      if (isString(coverUrlTop)) mediaPayload.coverUrl = coverUrlTop;
+      if (typeof coverUrlTop === "string") mediaPayload.coverUrl = coverUrlTop;
       if (pdfUrlFinal) mediaPayload.pdfUrl = pdfUrlFinal;
 
-      // 3) Update Firestore
       const payload: any = {
         title: draft.title.trim(),
         serviceType: draft.serviceType,
@@ -401,12 +416,10 @@ export default function EditProductPage() {
         updatedAt: serverTimestamp(),
       };
 
-      await updateDoc(
-        doc(db, "users", user.uid, "products", productId),
-        payload
-      );
+      // UPDATE top-level products/{productId}
+      await updateDoc(doc(db, "products", productId), payload);
 
-      // (opsional) pending delete
+      // optional: delete removed images from cloudinary
       const rawDeletes = listPendingDeletes(bucketId);
       const publicIdsToDelete: string[] = rawDeletes
         .map((x) => publicIdFromUrl(x) ?? x)
@@ -420,7 +433,7 @@ export default function EditProductPage() {
         }).catch((e) => console.warn("[cloudinary] delete error:", e));
       }
 
-      // 4) Clear bucket & pointer
+      // clear
       clearAll(bucketId);
       clearBucketByKey(BUCKET_KEY);
 
@@ -467,7 +480,6 @@ export default function EditProductPage() {
 
   return (
     <main className="mx-auto max-w-3xl p-4">
-      {/* Header: Back icon + Judul + Step Bar */}
       <div className="mb-6 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="flex items-center gap-2">
           <button
@@ -493,12 +505,10 @@ export default function EditProductPage() {
           <h1 className="text-2xl font-semibold">Edit Produk/Jasa</h1>
         </div>
 
-        {/* Step Bar (klik untuk lompat step) */}
         <div className="w-full sm:w-[55%]">
           <StepBar
             steps={stepItems}
             onSelect={(id) => {
-              // Boleh mundur kapan saja; maju hanya jika enabled
               const idx = id - 1;
               if (stepItems[idx].enabled) setStep(id);
             }}
@@ -506,7 +516,6 @@ export default function EditProductPage() {
         </div>
       </div>
 
-      {/* Steps */}
       {step === 1 && (
         <Step1Basic
           value={{
@@ -539,7 +548,6 @@ export default function EditProductPage() {
         />
       )}
 
-      {/* Footer actions */}
       <div className="mt-6 flex items-center justify-end gap-2">
         <button
           type="button"
@@ -548,7 +556,6 @@ export default function EditProductPage() {
         >
           Cancel
         </button>
-
         {step < 4 ? (
           <button
             type="button"
